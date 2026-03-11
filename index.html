@@ -3383,6 +3383,7 @@ function renderSuivi(){
 // ── INSCRIPTION ───────────────────────────────────────────────
 function loadInscriptions(){
   try{var r=localStorage.getItem(INSC_KEY);_inscriptions=r?JSON.parse(r):[];}catch(e){_inscriptions=[];}
+  buildCombattantsFromInscriptions();
 }
 function saveInscriptions(){
   try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
