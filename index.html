@@ -351,6 +351,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
       </div>
       <button class="btn full lg" onclick="doLogin()">🔓 Accéder</button>
       <div class="lerr" id="lerr">⛔ Code incorrect.</div>
+    </div>
   </div>
 </div>
 
@@ -2766,98 +2767,7 @@ function toast(msg,type){
 
 // INIT
 
-// DÉMO TABLE JUGE — données préconfigurées accessibles depuis login
-function initDemoTable(){
-  // Remettre les combattants à zéro
-  COMBATTANTS.forEach(function(cb){cb.pdsP=null;cb.present=null;cb.cat=null;});
-  POOLS={}; FIGHTS=[];
 
-  // Simuler pesée + présence pour tous
-
-  var presences={};
-  COMBATTANTS.forEach(function(cb){presences[cb.id]=cb.pdsD;});
-  COMBATTANTS.forEach(function(cb){
-    cb.present=true;
-    cb.pdsP=presences[cb.id]||cb.pdsD;
-    // cat sera recalculé avec genre lors du groupement
-  });
-
-  AGE_CATS.forEach(function(ac){
-    ac.statut="pesee"; ac.poulesFaites=false;
-    var fighters=getFighters(ac.id).filter(function(c){return c.present===true&&c.pdsP!==null;});
-    if(fighters.length===0){ac.statut="attente";return;}
-
-    var byPoids={};
-    fighters.forEach(function(cb){
-      var catBase=getCatPoids(ac,cb.pdsP);
-      var genre=cb.g==="F"?"F":"M";
-      var cat=catBase+" ("+genre+")";
-      cb.cat=cat;
-      if(!byPoids[cat]) byPoids[cat]=[];
-      byPoids[cat].push(cb);
-    });
-
-    var keys=Object.keys(byPoids);
-    keys.forEach(function(cat){
-      if(byPoids[cat]&&byPoids[cat].length===1){
-        var fighter=byPoids[cat][0];
-        var genre=fighter.g==="F"?"F":"M";
-
-        var best=null,bestCount=0;
-        Object.keys(byPoids).forEach(function(k){
-          if(k!==cat&&byPoids[k]&&byPoids[k].length>bestCount){
-
-            var kGenre=k.slice(-2)===("F)")||k.slice(-1)==="F"?"F":"M";
-            var kG=k.indexOf("(F)")!==-1?"F":"M";
-            if(kG===genre){best=k;bestCount=byPoids[k].length;}
-          }
-        });
-        if(best){
-          fighter.cat=best;
-          byPoids[best].push(fighter);
-          delete byPoids[cat];
-        } else {
-          delete byPoids[cat]; // seul(e) dans son genre -> annuler
-        }
-      }
-    });
-
-    var newFights=[];
-    Object.keys(byPoids).forEach(function(cat){
-      var fs=byPoids[cat]; if(!fs||fs.length<2) return;
-      var dur=getDur(fs[0].age);
-      var fmt=getFormat(fs.length);
-      var fights=buildFights(fs,fmt,cat,dur,FIGHTS.length+newFights.length);
-      POOLS[cat]={fighters:fs,fights:fights,format:fmt,dur:dur,acId:ac.id};
-      fights.forEach(function(f){newFights.push(f);});
-    });
-    newFights.forEach(function(f){FIGHTS.push(f);});
-    FIGHTS.forEach(function(f,i){f.id=i;});
-
-    if(Object.keys(byPoids).length>0){
-      ac.statut="combats"; ac.poulesFaites=true;
-    }
-  });
-
-  var poolKeys=Object.keys(POOLS);
-  var tables=["T1","T2","T3","T4"];
-  poolKeys.forEach(function(k,i){
-    POOL_TABLES[k]=tables[i%tables.length];
-  });
-}
-
-function launchDemoTable(){
-  initDemoTable();
-  role="admin";
-  showHybridNav();
-  setTimeout(updateFbIndicator, 500);
-  document.getElementById("admintabs").style.display="block";
-  document.getElementById("tbar").style.display="none";
-  showPage("pg-admin");
-  aTab("live");
-  toast("⚡ Démo chargée — "+FIGHTS.length+" combats · "+Object.keys(POOLS).length+" poules","ok");
-  updateHnavHighlight();
-}
 
 
 function resetCompetition(){
@@ -3737,76 +3647,39 @@ function deleteClub(i){if(!confirm('Supprimer '+CLUBS[i]+' ?'))return;CLUBS.spli
 // ── NAV HYBRIDE BOUTON ACCUEIL ────────────────────────────────
 
 (function(){
-  // 1. Charger les inscriptions depuis localStorage
   loadInscriptions();
-  // 2. Construire COMBATTANTS depuis ces inscriptions
   buildCombattantsFromInscriptions();
-  // 3. Initialiser Firebase (mettra à jour si nouvelles inscriptions)
-  if(document.readyState === 'complete'){
-    fbInit();
+  if(document.readyState==='complete'){fbInit();}else{window.addEventListener('load',fbInit);}
+  var hasState=loadState();
+  buildCombattantsFromInscriptions();
+
+  // Afficher une page immédiatement
+  var _savedRole=localStorage.getItem('mma_session_role');
+  if(_savedRole){
+    role=_savedRole;
+    if(role==='admin'){showHybridNav();var at=$('admintabs');if(at)at.style.display='block';showPage('pg-admin');renderCats();}
+    else{showHybridNav();switchToTable(role);}
   } else {
-    window.addEventListener('load', fbInit);
+    showPage('pg-public');
   }
 
-  // Charger l'état sauvegardé si disponible
-  var hasState = loadState();
-  // Reconstruire COMBATTANTS depuis inscriptions APRÈS loadState
-  buildCombattantsFromInscriptions();
-  // Session restaurée dans applyRemoteState ou ici si pas de Firebase
-  try{
-    var _savedRole=localStorage.getItem('mma_session_role');
-    if(!_savedRole){ showPage('pg-public'); }
-    // Si Firebase répond → applyRemoteState gèrera la session
-    // Sinon après 2s, restaurer quand même
-    setTimeout(function(){
-      if(document.getElementById('pg-public').style.display==='none'&&
-         document.getElementById('pg-admin').style.display==='none'&&
-         document.getElementById('pg-login').style.display==='none'){
-        showPage('pg-public');
-      }
-      if(!role&&_savedRole){
-        role=_savedRole;
-        if(role==='admin'){showHybridNav();var at=$('admintabs');if(at)at.style.display='block';showPage('pg-admin');renderCats();}
-        else{showHybridNav();switchToTable(role);}
-      }
-    },500);
-  }catch(e){ showPage('pg-public'); }
   updatePublicStats();
   TimerManager.set('countdown',updatePublicStats,1000);
 
-  if(hasState){
-    // Bannière de reprise sur l'écran de login
-    var age = getSaveAge();
-    var banner = document.createElement("div");
-    banner.id = "resume-banner";
-    banner.style.cssText = "background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 16px;margin:16px 0;text-align:center";
-    banner.innerHTML =
+  if(hasState&&!_savedRole){
+    var age=getSaveAge();
+    var banner=document.createElement('div');
+    banner.id='resume-banner';
+    banner.style.cssText='background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 16px;margin:16px 0;text-align:center';
+    banner.innerHTML=
       "<div style='font-family:var(--fh);font-size:1rem;letter-spacing:2px;color:#f59e0b;margin-bottom:4px'>💾 SESSION SAUVEGARDÉE</div>"+
       "<div style='font-family:var(--fm);font-size:.6rem;color:var(--muted);line-height:1.8'>Compétition en cours · sauvegardée "+formatSaveAge(age)+"<br>Connectez-vous pour reprendre là où vous en étiez.</div>"+
       "<div style='display:flex;gap:8px;margin-top:10px;justify-content:center'>"+
       "<button class='btn su' style='font-family:var(--fm);font-size:.6rem;letter-spacing:1px' onclick='document.getElementById(\"resume-banner\").style.display=\"none\"'>✔ Reprendre</button>"+
       "<button class='btn gh' style='font-family:var(--fm);font-size:.6rem;letter-spacing:1px' onclick='clearState();document.getElementById(\"resume-banner\").remove();toast(\"Session effacée\",\"warn\")'>✕ Nouvelle compétition</button>"+
       "</div>";
-    var loginWrap = document.querySelector(".login-wrap") || document.querySelector(".wrap");
-    if(loginWrap) loginWrap.insertBefore(banner, loginWrap.firstChild);
-  }
-  TimerManager.set('countdown',updatePublicStats,1000);
-
-  if(hasState){
-    // Bannière de reprise sur l'écran de login
-    var age = getSaveAge();
-    var banner = document.createElement("div");
-    banner.id = "resume-banner";
-    banner.style.cssText = "background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 16px;margin:16px 0;text-align:center";
-    banner.innerHTML =
-      "<div style='font-family:var(--fh);font-size:1rem;letter-spacing:2px;color:#f59e0b;margin-bottom:4px'>💾 SESSION SAUVEGARDÉE</div>"+
-      "<div style='font-family:var(--fm);font-size:.6rem;color:var(--muted);line-height:1.8'>Compétition en cours · sauvegardée "+formatSaveAge(age)+"<br>Connectez-vous pour reprendre là où vous en étiez.</div>"+
-      "<div style='display:flex;gap:8px;margin-top:10px;justify-content:center'>"+
-      "<button class='btn su' style='font-family:var(--fm);font-size:.6rem;letter-spacing:1px' onclick='document.getElementById(\"resume-banner\").style.display=\"none\"'>✔ Reprendre</button>"+
-      "<button class='btn gh' style='font-family:var(--fm);font-size:.6rem;letter-spacing:1px' onclick='clearState();document.getElementById(\"resume-banner\").remove();toast(\"Session effacée\",\"warn\")'>✕ Nouvelle compétition</button>"+
-      "</div>";
-    var loginWrap = document.querySelector(".login-wrap") || document.querySelector(".wrap");
-    if(loginWrap) loginWrap.insertBefore(banner, loginWrap.firstChild);
+    var loginWrap=document.querySelector('.login-wrap')||document.querySelector('.wrap');
+    if(loginWrap)loginWrap.insertBefore(banner,loginWrap.firstChild);
   }
 })();
 
