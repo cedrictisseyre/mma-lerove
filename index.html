@@ -772,6 +772,7 @@ var firebaseConfig = {
 var _fbApp = null, _fbDb = null, _fbRef = null;
 var _fbConnected = false;
 var _fbListening = false;
+var _liveChrono = null;
 var _fbIgnoreNext = false; // évite la boucle écriture→lecture
 
 // Clé de compétition — change-la pour isoler chaque événement
@@ -1693,20 +1694,17 @@ function renderLive(){
 }
 
 function syncLiveChrono(){
-
-  var liveTab=document.getElementById("tab-live");
-  if(!liveTab||liveTab.style.display==="none") return;
-  ["T1","T2","T3","T4"].forEach(function(t){
-    var el=document.getElementById("live-chr-"+t);
-    if(!el) return;
-
-    if(role===t&&trun){
-      el.textContent=fmt(tsecs);
-      el.style.color=tsecs<=10?"var(--red2)":"var(--gold)";
-    }
-  });
+  var liveTab=document.getElementById('tab-live');
+  if(liveTab&&liveTab.style.display!=="none"){
+    ['T1','T2','T3','T4'].forEach(function(t){
+      var el=document.getElementById('live-chr-'+t);
+      if(el&&role===t&&trun){el.textContent=fmt(tsecs);el.style.color=tsecs<=10?'var(--red2)':'var(--gold)';}
+    });
+  }
+  if(_fbRef&&cid!==null){
+    try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:trun,ts:Date.now()});}catch(e){}
+  }
 }
-
 // FILTRAGE DE LA LISTE PAR TABLE
 // renderList filtre les combats selon la table active (POOL_TABLES)
 // On réécrit renderList pour n'afficher que les poules attribuées à `role`
@@ -3347,6 +3345,7 @@ function applyRemoteState(data){
 // ── SUIVI PUBLIC ──────────────────────────────────────────────
 function showPublicSuivi(){
   showPage('pg-suivi');
+  if(_fbRef&&!_liveChrono){_liveChrono=_fbRef.child('liveChrono');_liveChrono.on('value',function(snap){window._livChronoData=snap.val();});}
   _suiviTab='all'; _suiviCat='all';
   setSuiviTab('all'); renderSuiviCatFilters(); renderSuivi();
   clearInterval(_suiviTimer);
@@ -3354,7 +3353,7 @@ function showPublicSuivi(){
     renderSuivi();
     var el=document.getElementById('suivi-ts');
     if(el) el.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  },4000);
+  },1000);
 }
 function suiviTab(t){_suiviTab=t;setSuiviTab(t);renderSuivi();}
 function setSuiviTab(t){
@@ -3464,6 +3463,19 @@ function fightRow(f,label){
   s+=fCard(f.a,roleA);
   s+="<div style='font-family:var(--fh);font-size:.75rem;color:var(--red2);text-align:center'>VS</div>";
   s+=fCard(f.b,roleB);
+  if(isLive){
+    var lcd=window._livChronoData;
+    var lcdSecs=null;
+    if(lcd&&lcd.running&&lcd.ts){
+      var elapsed=Math.round((Date.now()-lcd.ts)/1000);
+      lcdSecs=Math.max(0,lcd.secs-elapsed);
+    }
+    if(lcdSecs!==null){
+      s+="<div style='text-align:center;font-family:var(--fh);font-size:2.8rem;"+
+         (lcdSecs<=10?"color:var(--red2);animation:pulse .5s infinite":"color:var(--gold)")+
+         ";letter-spacing:4px;margin-top:6px'>"+fmt(lcdSecs)+"</div>";
+    }
+  }
   s+="</div></div>";
   return s;
 }
