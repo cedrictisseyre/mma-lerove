@@ -3397,7 +3397,8 @@ function renderSuivi(){
       var catObj=AGE_CATS.find(function(a){return pk.toLowerCase().indexOf(a.id)!==-1;});
       var fighters={};
       pool.fights.forEach(function(f){fighters[f.a.id]=f.a;fighters[f.b.id]=f.b;});
-      h+="<div class='card' style='margin-bottom:12px;border-top:3px solid "+(fin?'var(--green)':'var(--red2)')+"'>";
+      // Header carte
+      h+="<div class='card' style='margin-bottom:16px;border-top:3px solid "+(fin?'var(--green)':'var(--red2)')+"'>";
       h+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px'><div>";
       h+="<div style='font-family:var(--fh);font-size:.9rem;letter-spacing:2px'>"+pk+"</div>";
       h+="<div style='display:flex;gap:5px;margin-top:3px;flex-wrap:wrap'>";
@@ -3406,26 +3407,186 @@ function renderSuivi(){
       h+="<span style='background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;font-family:var(--fm);font-size:.45rem;color:var(--muted);padding:2px 8px'>👥 "+Object.keys(fighters).length+" combattants</span>";
       h+="<span style='background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;font-family:var(--fm);font-size:.45rem;color:var(--muted);padding:2px 8px'>⚔ "+done+"/"+tot+"</span>";
       h+="</div></div><div style='font-family:var(--fm);font-size:.65rem;color:"+(fin?'var(--green)':'var(--gold)')+"'>"+(fin?'🏁 FIN':pct+'%')+"</div></div>";
-      h+="<div style='background:var(--dark3);border-radius:4px;height:4px;margin-bottom:10px'><div style='background:"+(fin?'var(--green)':'var(--red2)')+";width:"+pct+"%;height:4px;border-radius:4px'></div></div>";
-      if(!fin&&act){
-        h+="<div style='background:rgba(200,0,10,.06);border:1px solid rgba(200,0,10,.2);border-radius:8px;padding:12px;margin-bottom:8px'>";
-        h+="<div style='font-family:var(--fm);font-size:.5rem;color:var(--red2);letter-spacing:2px;text-align:center;margin-bottom:8px'>⚔ EN COURS</div>";
-        h+="<div style='display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center'>";
-        h+="<div style='text-align:center'><div style='font-family:var(--fh);font-size:1rem'>"+esc(act.a.nom)+"</div><div style='font-family:var(--fm);font-size:.5rem;color:var(--muted)'>"+esc(act.a.club)+"</div></div>";
-        h+="<div style='font-family:var(--fh);font-size:1.3rem;color:var(--red2)'>VS</div>";
-        h+="<div style='text-align:center'><div style='font-family:var(--fh);font-size:1rem'>"+esc(act.b.nom)+"</div><div style='font-family:var(--fm);font-size:.5rem;color:var(--muted)'>"+esc(act.b.club)+"</div></div>";
-        h+="</div></div>";
-      }
-      var doneF=pool.fights.filter(function(f){return f.done;});
-      if(doneF.length){h+="<div style='margin-top:6px'>";doneF.forEach(function(f){var wA=f.winner===f.a.id;h+="<div style='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)'><div style='flex:1;text-align:right;font-family:var(--fh);font-size:.8rem;color:"+(wA?'#fff':'var(--muted)')+"'>"+f.a.nom+(wA?' 🏆':'')+"</div><div style='font-family:var(--fm);font-size:.48rem;color:var(--muted)'>vs</div><div style='flex:1;font-family:var(--fh);font-size:.8rem;color:"+(!wA?'#fff':'var(--muted)')+">"+(!wA?'🏆 ':'')+f.b.nom+"</div></div>";});h+="</div>";}
-      h+="<details style='margin-top:8px'><summary style='font-family:var(--fm);font-size:.52rem;color:var(--muted);cursor:pointer'>👥 VOIR LES COMBATTANTS</summary><div style='margin-top:6px'>";
-      Object.values(fighters).forEach(function(f){var w=pool.fights.filter(function(fi){return fi.done&&fi.winner===f.id;}).length,l=pool.fights.filter(function(fi){return fi.done&&fi.winner&&fi.winner!==f.id&&(fi.a.id===f.id||fi.b.id===f.id);}).length;h+="<div style='display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)'><div><div style='font-family:var(--fh);font-size:.8rem'>"+f.nom+" "+f.pre+"</div><div style='font-family:var(--fm);font-size:.48rem;color:var(--muted)'>"+f.club+"</div></div><div style='font-family:var(--fm);font-size:.55rem;color:var(--gold)'>"+w+"V / "+l+"D</div></div>";});
-      h+="</div></details></div>";
+      h+="<div style='background:var(--dark3);border-radius:4px;height:4px;margin-bottom:12px'><div style='background:"+(fin?'var(--green)':'var(--red2)')+";width:"+pct+"%;height:4px;border-radius:4px'></div></div>";
+      // BRACKET selon format
+      h+=renderBracket(pool,pk);
+      h+="</div>";
     });
   });
-  if(!any) h="<div style='text-align:center;padding:40px;font-family:var(--fm);font-size:.65rem;color:var(--muted)'>"+(q?"Aucun résultat":"⏳ La compétition n'a pas encore démarré.")+"</div>";
+  if(!any) h="<div style='text-align:center;padding:40px;font-family:var(--fm);font-size:.65rem;color:var(--muted)'>"+( q?"Aucun résultat":"⏳ La compétition n'a pas encore démarré.")+"</div>";
   el.innerHTML=h;
 }
+
+function renderBracket(pool,pk){
+  var fmt=pool.format;
+  var fights=pool.fights;
+  var h='';
+  if(fmt==='aller-retour') h+=bracketAllerRetour(fights);
+  else if(fmt==='robin3') h+=bracketRobin(fights,pool.fighters);
+  else if(fmt==='nordique4') h+=bracketNordique(fights,pool.fighters);
+  else if(fmt==='elim') h+=bracketElim(fights,pool.fighters);
+  return h;
+}
+
+/* ── Utilitaire : carte combattant ── */
+function fCard(f,role){
+  // role: 'win'|'lose'|'live'|'wait'
+  var styles={
+    win:"background:rgba(34,197,94,.12);border:1.5px solid rgba(34,197,94,.5);",
+    lose:"background:rgba(255,255,255,.03);border:1px solid var(--border);opacity:.55;",
+    live:"background:rgba(200,0,10,.10);border:1.5px solid rgba(200,0,10,.5);",
+    wait:"background:rgba(255,255,255,.03);border:1px solid var(--border);"
+  };
+  var s=styles[role]||styles.wait;
+  var icon=role==='win'?'🏆':role==='lose'?'😔':role==='live'?'⚔':'';
+  var nameColor=role==='win'?'#4ade80':role==='lose'?'var(--muted)':role==='live'?'#fff':'var(--fg)';
+  var isUnknown=f.nom==='?' || f.id==='ph';
+  return "<div style='"+s+"border-radius:7px;padding:7px 10px;min-width:100px;text-align:center'>"
+    +(icon?"<div style='font-size:.9rem;margin-bottom:2px'>"+icon+"</div>":"")
+    +"<div style='font-family:var(--fh);font-size:.72rem;color:"+nameColor+"'>"+(isUnknown?'<span style=\"color:var(--muted);font-size:.6rem\">à déterminer</span>':esc(f.nom))+"</div>"
+    +(isUnknown?'':"<div style='font-family:var(--fm);font-size:.42rem;color:var(--muted)'>"+esc(f.pre)+"<br>"+esc(f.club)+"</div>")
+    +(role==='win'?"<div style='font-family:var(--fh);font-size:.48rem;color:#4ade80;letter-spacing:1px;margin-top:2px'>VAINQUEUR</div>":'')
+  +"</div>";
+}
+
+/* ── Combat row générique ── */
+function fightRow(f,label){
+  var isLive=!f.done&&!f.locked;
+  var isDone=f.done;
+  var isWait=f.locked||(!f.done&&f.locked);
+  var wA=f.winner===f.a.id;
+  var roleA=isDone?(wA?'win':'lose'):(isLive?'live':'wait');
+  var roleB=isDone?(!wA?'win':'lose'):(isLive?'live':'wait');
+  var borderColor=isDone?'rgba(34,197,94,.3)':isLive?'rgba(200,0,10,.3)':'rgba(255,255,255,.05)';
+  var s="<div style='border:1px solid "+borderColor+";border-radius:8px;padding:8px;margin-bottom:8px;background:rgba(0,0,0,.2)'>";
+  s+="<div style='font-family:var(--fm);font-size:.42rem;color:var(--muted);letter-spacing:1.5px;text-align:center;margin-bottom:6px'>"+label+(isLive?" <span style='color:var(--red2);animation:pulse 1s infinite'>● EN COURS</span>":isDone?" ✓":"")+"</div>";
+  s+="<div style='display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:center'>";
+  s+=fCard(f.a,roleA);
+  s+="<div style='font-family:var(--fh);font-size:.75rem;color:var(--red2);text-align:center'>VS</div>";
+  s+=fCard(f.b,roleB);
+  s+="</div></div>";
+  return s;
+}
+
+/* ── Format 2 : Aller / Retour ── */
+function bracketAllerRetour(fights){
+  var labels=['Manche 1','Manche 2','Manche 3 — Départage'];
+  var h="<div style='margin-bottom:6px'>";
+  // Score
+  var sc=[0,0];
+  fights.slice(0,2).forEach(function(f){if(f.done){if(f.winner===f.a.id)sc[0]++;else sc[1]++;}});
+  var A=fights[0]?fights[0].a:null;
+  var B=fights[0]?fights[0].b:null;
+  if(A&&B){
+    h+="<div style='display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px'>";
+    h+="<div style='text-align:center'><div style='font-family:var(--fh);font-size:.75rem;color:#fff'>"+esc(A.nom)+"</div><div style='font-family:var(--fm);font-size:.42rem;color:var(--muted)'>"+esc(A.club)+"</div></div>";
+    h+="<div style='text-align:center'><div style='font-family:var(--fh);font-size:1.4rem;color:var(--gold)'>"+sc[0]+" — "+sc[1]+"</div><div style='font-family:var(--fm);font-size:.42rem;color:var(--muted);letter-spacing:1px'>SCORE</div></div>";
+    h+="<div style='text-align:center'><div style='font-family:var(--fh);font-size:.75rem;color:#fff'>"+esc(B.nom)+"</div><div style='font-family:var(--fm);font-size:.42rem;color:var(--muted)'>"+esc(B.club)+"</div></div>";
+    h+="</div>";
+  }
+  fights.forEach(function(f,i){
+    if(f.type==='depart'&&sc[0]===sc[1]&&!fights[0].done&&!fights[1].done) return;
+    if(f.type==='depart'&&sc[0]!==sc[1]&&fights[0].done&&fights[1].done&&!f.done) return;
+    h+=fightRow(f, labels[i]||('Manche '+(i+1)));
+  });
+  h+="</div>";
+  return h;
+}
+
+/* ── Format 3 : Round Robin ── */
+function bracketRobin(fights,fighters){
+  var h="";
+  // Classement
+  var scores={};
+  fighters.forEach(function(f){scores[f.id]={f:f,v:0,d:0};});
+  fights.forEach(function(fi){
+    if(!fi.done) return;
+    if(scores[fi.winner]) scores[fi.winner].v++;
+    var loserId=fi.winner===fi.a.id?fi.b.id:fi.a.id;
+    if(scores[loserId]) scores[loserId].d++;
+  });
+  var ranking=Object.values(scores).sort(function(a,b){return b.v-a.v;});
+  h+="<div style='background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px'>";
+  h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--muted);letter-spacing:1.5px;text-align:center;margin-bottom:8px'>CLASSEMENT</div>";
+  ranking.forEach(function(s,i){
+    var medal=i===0?'🥇':i===1?'🥈':'🥉';
+    var isDone=fights.every(function(f){return f.done;});
+    h+="<div style='display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)'>";
+    h+="<div style='display:flex;align-items:center;gap:8px'><span>"+medal+"</span><div><div style='font-family:var(--fh);font-size:.72rem'>"+esc(s.f.nom)+"</div><div style='font-family:var(--fm);font-size:.42rem;color:var(--muted)'>"+esc(s.f.club)+"</div></div></div>";
+    h+="<div style='font-family:var(--fh);font-size:.65rem;color:var(--gold)'>"+s.v+"V / "+s.d+"D</div>";
+    h+="</div>";
+  });
+  h+="</div>";
+  fights.forEach(function(f,i){h+=fightRow(f,'Combat '+(i+1));});
+  return h;
+}
+
+/* ── Format 4 : Nordique ── */
+function bracketNordique(fights,fighters){
+  var h="";
+  var scores={};
+  fighters.forEach(function(f){scores[f.id]={f:f,v:0,d:0};});
+  fights.forEach(function(fi){
+    if(!fi.done) return;
+    if(scores[fi.winner]) scores[fi.winner].v++;
+    var loserId=fi.winner===fi.a.id?fi.b.id:fi.a.id;
+    if(scores[loserId]) scores[loserId].d++;
+  });
+  var ranking=Object.values(scores).sort(function(a,b){return b.v-a.v||a.d-b.d;});
+  h+="<div style='background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px'>";
+  h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--muted);letter-spacing:1.5px;text-align:center;margin-bottom:8px'>CLASSEMENT NORDIQUE</div>";
+  ranking.forEach(function(s,i){
+    var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '+(i+1);
+    h+="<div style='display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)'>";
+    h+="<div style='display:flex;align-items:center;gap:8px'><span style='font-size:.8rem'>"+medal+"</span><div><div style='font-family:var(--fh);font-size:.72rem'>"+esc(s.f.nom)+"</div><div style='font-family:var(--fm);font-size:.42rem;color:var(--muted)'>"+esc(s.f.club)+"</div></div></div>";
+    h+="<div style='font-family:var(--fh);font-size:.65rem;color:var(--gold)'>"+s.v+"V / "+s.d+"D</div></div>";
+  });
+  h+="</div>";
+  fights.forEach(function(f,i){h+=fightRow(f,'Combat '+(i+1));});
+  return h;
+}
+
+/* ── Format élim : tableau officiel ── */
+function bracketElim(fights,fighters){
+  var r1=fights.filter(function(f){return f.type==='elim-r1';});
+  var sf=fights.filter(function(f){return f.type==='elim-sf';});
+  var finale=fights.find(function(f){return f.type==='elim-f';});
+  var p3=fights.find(function(f){return f.type==='elim-3';});
+  var n=fighters.length;
+  var roundLabel=n<=4?'Demi-finales':n<=8?'Quarts de finale':n<=16?'8e de finale':n<=32?'16e de finale':'32e de finale';
+  var h="<div style='overflow-x:auto'>";
+  // Phase 1 si existe
+  if(r1.length){
+    h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--muted);letter-spacing:2px;text-align:center;padding:4px 0;margin-bottom:6px;border-bottom:1px solid var(--border)'>"+roundLabel.toUpperCase()+"</div>";
+    r1.forEach(function(f,i){h+=fightRow(f,'Combat '+(i+1));});
+  }
+  // Demi-finales
+  if(sf.length){
+    h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--muted);letter-spacing:2px;text-align:center;padding:4px 0;margin:8px 0 6px;border-bottom:1px solid var(--border)'>DEMI-FINALES</div>";
+    sf.forEach(function(f,i){h+=fightRow(f,'1/2 Finale '+(i+1));});
+  }
+  // Finale
+  if(finale){
+    h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--gold);letter-spacing:2px;text-align:center;padding:4px 0;margin:8px 0 6px;border-bottom:1px solid rgba(232,184,75,.3)'>🏆 FINALE</div>";
+    h+=fightRow(finale,'Grande Finale');
+    if(finale.done){
+      var champ=finale.winner===finale.a.id?finale.a:finale.b;
+      h+="<div style='text-align:center;background:linear-gradient(135deg,rgba(232,184,75,.15),rgba(232,184,75,.05));border:2px solid var(--gold);border-radius:10px;padding:14px;margin-top:6px'>";
+      h+="<div style='font-size:2rem;margin-bottom:4px'>🏆</div>";
+      h+="<div style='font-family:var(--fh);font-size:1rem;color:var(--gold);letter-spacing:2px'>CHAMPION</div>";
+      h+="<div style='font-family:var(--fh);font-size:.9rem;color:#fff;margin-top:4px'>"+esc(champ.nom)+" "+esc(champ.pre)+"</div>";
+      h+="<div style='font-family:var(--fm);font-size:.5rem;color:var(--muted)'>"+esc(champ.club)+"</div></div>";
+    }
+  }
+  // Petite finale (3e place)
+  if(p3&&(sf.some(function(f){return f.done;})||!sf.length)){
+    h+="<div style='font-family:var(--fm);font-size:.45rem;color:var(--muted);letter-spacing:2px;text-align:center;padding:4px 0;margin:8px 0 6px;border-bottom:1px solid var(--border)'>🥉 COMBAT 3e PLACE</div>";
+    h+=fightRow(p3,'Petite Finale');
+  }
+  h+="</div>";
+  return h;
+}
+
 
 // ── INSCRIPTION ───────────────────────────────────────────────
 function loadInscriptions(){
@@ -3445,13 +3606,13 @@ function previewPhoto(input){
       original.onload = function(){
         // Compresser via canvas — max 200x200px
         var canvas = document.createElement('canvas');
-        var MAX = 120;
+        var MAX = 80;
         var w = original.width, h = original.height;
         if(w > h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
         else      { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
         canvas.width=w; canvas.height=h;
         canvas.getContext('2d').drawImage(original,0,0,w,h);
-        var compressed = canvas.toDataURL('image/jpeg', 0.3);
+        var compressed = canvas.toDataURL('image/jpeg', 0.15);
         var img  = document.getElementById('insc-photo-img');
         var prev = document.getElementById('insc-photo-preview');
         if(img){  img.src = compressed; }
