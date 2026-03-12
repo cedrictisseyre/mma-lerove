@@ -1474,6 +1474,7 @@ function closeModal(acId){
   var root=document.getElementById("modal-root");
   if(root) root.innerHTML="";
   delete _modalState[acId];
+  _insEditId=null;
 }
 
 // NAV HYBRIDE PERMANENTE
@@ -3008,6 +3009,7 @@ function saveFighter(){
     toast("+ "+nom+" "+pre+" ajouté","ok");
   }
 
+  _insEditId=null;
   closeModal();
   saveState();
   renderInscriptions();
