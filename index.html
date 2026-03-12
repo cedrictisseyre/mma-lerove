@@ -3260,7 +3260,11 @@ function updateTicker(){
 // ── FIREBASE ──────────────────────────────────────────────────
 
 function fbSave(state){
-  if(!_fbRef){ toast('⚠ Firebase non prêt - données non sync','warn'); return; }
+  if(!_fbRef){
+    // Firebase pas encore prêt — réessayer dans 1s
+    setTimeout(function(){ fbSave(state); }, 1000);
+    return;
+  }
   try{_fbIgnoreNext=true;_fbRef.set(state);}catch(e){console.warn('fbSave:',e);}
 }
 function fbSaveInscriptions(){
