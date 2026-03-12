@@ -3441,10 +3441,23 @@ function previewPhoto(input){
   if(input.files && input.files[0]){
     var reader = new FileReader();
     reader.onload = function(e){
-      var img = document.getElementById('insc-photo-img');
-      var prev = document.getElementById('insc-photo-preview');
-      if(img){ img.src = e.target.result; }
-      if(prev){ prev.style.display = 'block'; }
+      var original = new Image();
+      original.onload = function(){
+        // Compresser via canvas — max 200x200px
+        var canvas = document.createElement('canvas');
+        var MAX = 120;
+        var w = original.width, h = original.height;
+        if(w > h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
+        else      { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(original,0,0,w,h);
+        var compressed = canvas.toDataURL('image/jpeg', 0.3);
+        var img  = document.getElementById('insc-photo-img');
+        var prev = document.getElementById('insc-photo-preview');
+        if(img){  img.src = compressed; }
+        if(prev){ prev.style.display = 'block'; }
+      };
+      original.src = e.target.result;
     };
     reader.readAsDataURL(input.files[0]);
   }
@@ -3498,7 +3511,7 @@ function submitInscription(){
   var photoEl = document.getElementById('insc-photo-img');
   var photo = (photoEl && photoEl.src && photoEl.src.startsWith('data:')) ? photoEl.src : null;
   _inscriptions.push({id:'ins-'+Date.now(),nom:nom,pre:pre,age:age,poids:pds,g:g,club:club,tel:tel,email:email,cat:ac?ac.lbl:'Hors catégorie',date:new Date().toLocaleDateString('fr-FR'),statut:'en attente',photo:photo});
-  saveInscriptions();
+  try{ saveInscriptions(); }catch(e){ console.warn('save:',e); }
   // Afficher la page de confirmation
   var wrap = document.getElementById('insc-form-wrap');
   if(wrap){
