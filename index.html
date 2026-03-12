@@ -3385,7 +3385,6 @@ function renderSuivi(){
 // ── INSCRIPTION ───────────────────────────────────────────────
 function loadInscriptions(){
   try{var r=localStorage.getItem(INSC_KEY);_inscriptions=r?JSON.parse(r):[];}catch(e){_inscriptions=[];}
-  buildCombattantsFromInscriptions();
 }
 function saveInscriptions(){
   try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
@@ -3471,9 +3470,11 @@ function deleteClub(i){if(!confirm('Supprimer '+CLUBS[i]+' ?'))return;CLUBS.spli
 // ── NAV HYBRIDE BOUTON ACCUEIL ────────────────────────────────
 
 (function(){
-  // Construire COMBATTANTS depuis les inscriptions en localStorage
+  // 1. Charger les inscriptions depuis localStorage
+  loadInscriptions();
+  // 2. Construire COMBATTANTS depuis ces inscriptions
   buildCombattantsFromInscriptions();
-  // Initialiser Firebase une fois la page entièrement chargée
+  // 3. Initialiser Firebase (mettra à jour si nouvelles inscriptions)
   if(document.readyState === 'complete'){
     fbInit();
   } else {
@@ -3482,6 +3483,8 @@ function deleteClub(i){if(!confirm('Supprimer '+CLUBS[i]+' ?'))return;CLUBS.spli
 
   // Charger l'état sauvegardé si disponible
   var hasState = loadState();
+  // Reconstruire COMBATTANTS depuis inscriptions APRÈS loadState
+  buildCombattantsFromInscriptions();
   showPage("pg-public");
   updatePublicStats();
   TimerManager.set('countdown',updatePublicStats,1000);
