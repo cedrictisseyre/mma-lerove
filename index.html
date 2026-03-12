@@ -829,7 +829,6 @@ function fbInit(){
         // Firebase retourne objet ou tableau selon comment c'est stocké
         _inscriptions = Array.isArray(data) ? data : Object.values(data);
         try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
-        toast('📋 Inscrits: '+_inscriptions.length+' Combattants: '+COMBATTANTS.length,'warn');
         // Fusionner inscrits publics sans écraser les combattants manuels
         var EMOJIS_LIST2=['🥊','🥋','⚡','🔥','💪','🦊','🐯','🦁','🐺','⚔'];
         _inscriptions.forEach(function(ins,i){
@@ -863,41 +862,26 @@ function applyRemoteState(data){
     // Ne pas appliquer si on est en plein combat (évite les glitches)
     if(trun) return;
 
-    // DEBUG — toast visible sur mobile
-    var _dbgCb = data.combattants ? data.combattants.length : 0;
-    toast('🔄 Firebase: '+_dbgCb+' combattants reçus','warn');
-
     var changed = false;
     if(data.combattants){
-      data.combattants.forEach(function(sc){
-        var cb = COMBATTANTS.find(function(x){return x.id===sc.id;});
-        if(cb){
-          // Mettre à jour tous les champs
-          if(sc.nom)  cb.nom=sc.nom;
-          if(sc.pre)  cb.pre=sc.pre;
-          if(sc.age)  cb.age=sc.age;
-          if(sc.pdsD) cb.pdsD=sc.pdsD;
-          if(sc.club) cb.club=sc.club;
-          if(sc.g)    cb.g=sc.g;
-          if(sc.e)    cb.e=sc.e;
-          cb.present=sc.present; cb.pdsP=sc.pdsP; cb.cat=sc.cat;
-          changed=true;
-        } else if(sc.nom){
-          // Nouveau combattant absent localement → l'ajouter
-          COMBATTANTS.push({id:sc.id, nom:sc.nom, pre:sc.pre, age:sc.age,
-            pdsD:sc.pdsD, club:sc.club, g:sc.g, e:sc.e||'🥋',
-            present:sc.present||null, pdsP:sc.pdsP||null, cat:sc.cat||null});
-          changed=true;
-        }
+      // Reconstruire COMBATTANTS complet depuis Firebase — source de vérité unique
+      COMBATTANTS = data.combattants.map(function(sc){
+        return {
+          id:      sc.id,
+          nom:     sc.nom     || '',
+          pre:     sc.pre     || '',
+          age:     sc.age     || 0,
+          pdsD:    sc.pdsD    || 0,
+          club:    sc.club    || '',
+          g:       sc.g       || 'M',
+          e:       sc.e       || '🥋',
+          present: sc.present || null,
+          pdsP:    sc.pdsP    || null,
+          cat:     sc.cat     || null,
+          photo:   sc.photo   || null
+        };
       });
-      // Supprimer localement les combattants supprimés sur Firebase
-      var remoteIds = data.combattants.map(function(x){return x.id;});
-      var before = COMBATTANTS.length;
-      COMBATTANTS = COMBATTANTS.filter(function(cb){
-        // Garder si vient des inscriptions publiques OU présent dans Firebase
-        return cb.fromInsc || remoteIds.indexOf(cb.id)!==-1;
-      });
-      if(COMBATTANTS.length !== before) changed=true;
+      changed=true;
     }
     if(data.ageCats){
       data.ageCats.forEach(function(sa){
@@ -3287,7 +3271,7 @@ function updateTicker(){
 // ── FIREBASE ──────────────────────────────────────────────────
 
 function fbSave(state){
-  if(!_fbRef) return;
+  if(!_fbRef){ toast('⚠ Firebase non prêt - données non sync','warn'); return; }
   try{_fbIgnoreNext=true;_fbRef.set(state);}catch(e){console.warn('fbSave:',e);}
 }
 function fbSaveInscriptions(){
