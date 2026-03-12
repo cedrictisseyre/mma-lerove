@@ -686,7 +686,9 @@ function saveState(){
   try {
     var state = {
       combattants: COMBATTANTS.map(function(cb){
-        return {id:cb.id, present:cb.present, pdsP:cb.pdsP, cat:cb.cat};
+        return {id:cb.id, nom:cb.nom, pre:cb.pre, age:cb.age, pdsD:cb.pdsD,
+                club:cb.club, g:cb.g, e:cb.e||'🥋',
+                present:cb.present, pdsP:cb.pdsP, cat:cb.cat};
       }),
       ageCats: AGE_CATS.map(function(ac){
         return {id:ac.id, statut:ac.statut, poulesFaites:ac.poulesFaites||false};
@@ -843,11 +845,33 @@ function applyRemoteState(data){
     if(data.combattants){
       data.combattants.forEach(function(sc){
         var cb = COMBATTANTS.find(function(x){return x.id===sc.id;});
-        if(cb && (cb.present!==sc.present||cb.pdsP!==sc.pdsP||cb.cat!==sc.cat)){
+        if(cb){
+          // Mettre à jour tous les champs
+          if(sc.nom)  cb.nom=sc.nom;
+          if(sc.pre)  cb.pre=sc.pre;
+          if(sc.age)  cb.age=sc.age;
+          if(sc.pdsD) cb.pdsD=sc.pdsD;
+          if(sc.club) cb.club=sc.club;
+          if(sc.g)    cb.g=sc.g;
+          if(sc.e)    cb.e=sc.e;
           cb.present=sc.present; cb.pdsP=sc.pdsP; cb.cat=sc.cat;
+          changed=true;
+        } else if(sc.nom){
+          // Nouveau combattant absent localement → l'ajouter
+          COMBATTANTS.push({id:sc.id, nom:sc.nom, pre:sc.pre, age:sc.age,
+            pdsD:sc.pdsD, club:sc.club, g:sc.g, e:sc.e||'🥋',
+            present:sc.present||null, pdsP:sc.pdsP||null, cat:sc.cat||null});
           changed=true;
         }
       });
+      // Supprimer localement les combattants supprimés sur Firebase
+      var remoteIds = data.combattants.map(function(x){return x.id;});
+      var before = COMBATTANTS.length;
+      COMBATTANTS = COMBATTANTS.filter(function(cb){
+        // Garder si vient des inscriptions publiques OU présent dans Firebase
+        return cb.fromInsc || remoteIds.indexOf(cb.id)!==-1;
+      });
+      if(COMBATTANTS.length !== before) changed=true;
     }
     if(data.ageCats){
       data.ageCats.forEach(function(sa){
