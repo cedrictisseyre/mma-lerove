@@ -3458,17 +3458,15 @@ function fightRow(f,label){
   s+=fCard(f.a,roleA);
   s+="<div style='font-family:var(--fh);font-size:.75rem;color:var(--red2);text-align:center'>VS</div>";
   s+=fCard(f.b,roleB);
+  // Chrono — uniquement si combat en cours
   if(isLive){
     var lcd=window._livChronoData;
     var lcdSecs=null;
-    // Afficher le chrono uniquement pour le combat en cours (cid doit correspondre)
     if(lcd&&lcd.cid==f.id){
       if(lcd.running&&lcd.ts){
-        // Chrono qui tourne : calculer le temps écoulé depuis la dernière synchro
         var elapsed=Math.round((Date.now()-lcd.ts)/1000);
         lcdSecs=Math.max(0,lcd.secs-elapsed);
       } else {
-        // Chrono en pause : afficher le temps figé
         lcdSecs=lcd.secs;
       }
     }
@@ -3484,14 +3482,15 @@ function fightRow(f,label){
         s+="<div style='text-align:center;font-family:var(--fh);font-size:.7rem;letter-spacing:3px;color:var(--muted);margin-top:4px'>⏸ PAUSE</div>";
       }
     }
-    // Vainqueur publié par la table
-    if(lcd&&lcd.winner&&lcd.cid==f.id){
-      s+="<div style='text-align:center;margin-top:8px;padding:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px'>";
-      s+="<div style='font-family:var(--fm);font-size:.5rem;letter-spacing:3px;color:var(--muted);margin-bottom:4px'>VAINQUEUR</div>";
-      s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(lcd.winner.e||'🏆')+"</div>";
-      s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+lcd.winner.nom+" "+lcd.winner.pre+"</div>";
-      s+="</div>";
-    }
+  }
+  // Vainqueur — affiché même après f.done=true
+  var lcd2=window._livChronoData;
+  if(lcd2&&lcd2.winner&&lcd2.cid==f.id){
+    s+="<div style='text-align:center;margin-top:8px;padding:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px'>";
+    s+="<div style='font-family:var(--fm);font-size:.5rem;letter-spacing:3px;color:var(--muted);margin-bottom:4px'>VAINQUEUR</div>";
+    s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(lcd2.winner.e||'🏆')+"</div>";
+    s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+lcd2.winner.nom+" "+lcd2.winner.pre+"</div>";
+    s+="</div>";
   }
   s+="</div></div>";
   return s;
