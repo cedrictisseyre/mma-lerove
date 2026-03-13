@@ -2067,41 +2067,44 @@ function buildFights(fighters,format,cat,dur,startId){
   if(format==="elim"){
     var phF={nom:"?",pre:"à venir",club:"",e:"❓",id:"ph"};
     var sh=F.slice().sort(function(){return Math.random()-.5;});
-    // Générer les rounds un par un jusqu'au champion
-    // currentSlots : liste de combattants du tour en cours
-    var currentSlots=sh.slice();
-    var tourNum=0;
-    var allRoundFights=[];
-    while(currentSlots.length>1){
-      tourNum++;
-      var thisTour=[];
-      var nextSlots=[];
-      var exempt=null;
-      // Si impair : le dernier est exempt
-      if(currentSlots.length%2===1) exempt=currentSlots[currentSlots.length-1];
-      var paires=Math.floor(currentSlots.length/2);
-      for(var i=0;i<paires;i++){
-        var fa=currentSlots[i*2], fb=currentSlots[i*2+1];
-        var isLastTour=(paires===1&&!exempt);
-        var lbl=isLastTour?"🏆 FINALE":"Tour "+tourNum+" — Combat "+(i+1);
-        var typ=isLastTour?"elim-f":"elim-t"+tourNum;
-        // Tour 1 = débloqué. Tours suivants = locked jusqu'à ce que les vainqueurs soient connus
-        var isFirstTour=(tourNum===1);
-        var ff=mkF(id++,cat,dur,lbl,typ,cloneF(fa),cloneF(fb),!isFirstTour);
-        ff._round=tourNum-1; ff._pos=i;
-        thisTour.push(ff); fs.push(ff);
-        nextSlots.push(cloneF(phF)); // placeholder vainqueur
+    // slots : {type:'fighter',f} ou {type:'winner',fightId}
+    var slots=sh.map(function(fi){return {type:'fighter',f:cloneF(fi)};});
+    var tN=0;
+    while(slots.length>1){
+      tN++;
+      var nxt=[], ex=null;
+      if(slots.length%2===1) ex=slots[slots.length-1];
+      var pr=Math.floor(slots.length/2);
+      var isF=(tN===1);
+      for(var j=0;j<pr;j++){
+        var sA=slots[j*2], sB=slots[j*2+1];
+        var tot=pr+(ex?1:0);
+        var isL=(tot===1);
+        var lb=isL?"🏆 FINALE":"Tour "+tN+" — Combat "+(j+1);
+        var tp=isL?"elim-f":"elim-t"+tN;
+        // Résoudre les combattants connus
+        var fA2=sA.type==='fighter'?sA.f:cloneF(phF);
+        var fB2=sB.type==='fighter'?sB.f:cloneF(phF);
+        // Verrouillé si on attend des vainqueurs, ou si ce n'est pas le tour 1
+        var lk=(sA.type==='winner'||sB.type==='winner')||!isF;
+        var ff2=mkF(id++,cat,dur,lb,tp,fA2,fB2,lk);
+        ff2._round=tN-1; ff2._pos=j;
+        // Mémoriser les sources pour propagation
+        if(sA.type==='winner') ff2._srcA=sA.fightId;
+        if(sB.type==='winner') ff2._srcB=sB.fightId;
+        // Exempt connu directement en B (ex : T1 a un exempt → T2 finale connaît déjà ce combattant)
+        if(sB.type==='fighter'&&!isF) ff2._exemptB=sB.f;
+        fs.push(ff2);
+        nxt.push({type:'winner',fightId:ff2.id});
       }
-      if(exempt) nextSlots.push(cloneF(exempt)); // exempt passe directement
-      allRoundFights.push({fights:thisTour, exempt:exempt?cloneF(exempt):null});
-      currentSlots=nextSlots;
+      if(ex) nxt.push(ex);
+      slots=nxt;
     }
-    // Combat 3e place si au moins un tour avec 2+ combats avant la finale
-    if(allRoundFights.length>=2){
-      var sfRound=allRoundFights[allRoundFights.length-2];
-      if(sfRound.fights.length>=2){
-        fs.push(mkF(id++,cat,dur,"Combat 3e place","elim-3",cloneF(phF),cloneF(phF),true));
-      }
+    // Combat 3e place : si le round avant la finale a 2+ vrais combats
+    var maxR=fs.filter(function(x){return x.cat===cat;}).reduce(function(m,x){return Math.max(m,x._round||0);},0);
+    var sfFights=fs.filter(function(x){return x.cat===cat&&x._round===maxR-1;});
+    if(sfFights.length>=2){
+      fs.push(mkF(id++,cat,dur,"Combat 3e place","elim-3",cloneF(phF),cloneF(phF),true));
     }
     return fs;
   }
