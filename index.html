@@ -883,8 +883,9 @@ function fbInit(){
 
 function applyRemoteState(data){
   try {
-    // Ne pas appliquer si on est en plein combat (évite les glitches)
-    if(trun) return;
+    // Ne pas appliquer si chrono en cours ET qu'il y a un combat actif
+    // Mais laisser passer si c'est une mise à jour de résultat (fights.done)
+    if(trun && window._livChronoData && window._livChronoData.running) return;
 
     var changed = false;
     if(data.combattants){
@@ -938,6 +939,9 @@ function applyRemoteState(data){
       }
       updateNotifBadge();
       updatePublicStats();
+      // Refresh suivi parents si ouvert
+      var ps=document.getElementById('pg-suivi');
+      if(ps&&ps.style.display!=='none') renderSuivi();
     }
   } catch(e){ console.warn("applyRemoteState:", e); }
 }
@@ -2485,6 +2489,7 @@ function stopChrono(){
   if(_fbRef){
     try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:false,stopped:true,ts:Date.now()});}catch(e){}
   }
+  saveState(); // Synchro FIGHTS vers tous les appareils
   renderPickBtns();showZone("z3");toast("⏹ Arrete","warn");
 }
 function killTimer(){clearInterval(tiv);tiv=null;trun=false;}
@@ -2529,8 +2534,9 @@ function validateResult(){
   toast("🏆 "+f[pendwin].nom+" — Victoire validee","ok");
   if(navigator.vibrate) navigator.vibrate([200,100,400]);
   showZone("z5"); renderDone(f); renderNext();
-  // Effacer le chrono live sur Firebase — combat terminé
-  if(_fbRef){try{_fbRef.child('liveChrono').set({cid:null,secs:0,running:false,ts:Date.now()});}catch(e){}}
+  // Stopper le chrono local et effacer sur Firebase — combat terminé
+  killTimer();
+  if(_fbRef){try{_fbRef.child('liveChrono').set({cid:null,secs:0,running:false,stopped:false,ts:Date.now()});}catch(e){}}
   // Vérif fin de catégorie
   checkCatTermine(f.cat);
 
