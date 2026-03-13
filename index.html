@@ -841,10 +841,25 @@ function fbInit(){
         // Firebase retourne objet ou tableau selon comment c'est stocké
         _inscriptions = Array.isArray(data) ? data : Object.values(data);
         try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
-        // Les inscriptions publiques sont intégrées via saveState/applyRemoteState
-        // Ne pas toucher à COMBATTANTS ici
+        // Reconstruire COMBATTANTS : inscrits publics + manuels existants
+        var EMOJIS=['🥊','🥋','⚡','🔥','💪','🦊','🐯','🦁','🐺','⚔'];
+        var manuels = COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
+        var inscrits = _inscriptions.map(function(ins,i){
+          var ac=getAgeCat(ins.age);
+          return {id:ins.id||('ins-'+i),nom:ins.nom,pre:ins.pre,age:ins.age,
+            pdsD:ins.poids,club:ins.club,g:ins.g||'M',e:EMOJIS[i%10],
+            present:null,pdsP:null,cat:ac?ac.lbl:'Hors catégorie',
+            photo:ins.photo||null};
+        });
+        // Fusionner sans doublons
+        COMBATTANTS = manuels.slice();
+        inscrits.forEach(function(ins){
+          if(!COMBATTANTS.find(function(x){return x.id===ins.id;})) COMBATTANTS.push(ins);
+        });
         renderInscList(); updateInscCount(); updatePublicStats();
         if(role==='admin') renderInscriptions();
+      } else {
+        updatePublicStats();
       }
     });
     // Sync état compétition
@@ -3205,9 +3220,8 @@ function updatePublicStats(){
   }
   var cel=document.getElementById('public-participant-count');
   if(cel){
-    // Compter inscrits publics + manuels sans doublon
-    var manuelsCount = COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';}).length;
-    var total = _inscriptions.length + manuelsCount;
+    // COMBATTANTS = source unique (inscrits publics + manuels via Firebase)
+    var total = COMBATTANTS.length > 0 ? COMBATTANTS.length : _inscriptions.length;
     cel.textContent = total || _inscriptions.length;
   }
 }
