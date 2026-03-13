@@ -2842,9 +2842,7 @@ function syncFight(pf){
 }
 
 function postFightLogic(f){
-  var pool=POOLS[f.cat]; 
-  console.log('[pfl] f.cat='+f.cat+' pool='+(pool?'ok format='+pool.format:'NULL'));
-  if(!pool) return;
+  var pool=POOLS[f.cat]; if(!pool) return;
   // ── Nordique4 : départage si égalité pour la 1ère place ──
   if(pool.format==="nordique4"){
     var allMain=pool.fights.filter(function(x){return x.type==="nordique";});
@@ -2886,12 +2884,14 @@ function postFightLogic(f){
     return;
   }
   if(pool.format==="elim"){
-    var allFights=pool.fights;
-    var petite=allFights.find(function(ff){return ff.type==='elim-3';});
-    // Grouper par round (_round)
+    // Travailler directement sur FIGHTS[] — c'est la source synchronisée
+    // pool.fights et FIGHTS[] pointent sur des objets différents après JSON
+    // On regroupe les combats de cette catégorie depuis FIGHTS[] directement
+    var catFights=FIGHTS.filter(function(ff){return ff.cat===f.cat&&ff.type!=='elim-3';});
+    var petite=FIGHTS.find(function(ff){return ff.cat===f.cat&&ff.type==='elim-3';});
+    // Grouper par _round
     var rounds={};
-    allFights.forEach(function(ff){
-      if(ff.type==='elim-3') return;
+    catFights.forEach(function(ff){
       var r=ff._round!==undefined?ff._round:0;
       if(!rounds[r]) rounds[r]=[];
       rounds[r].push(ff);
@@ -2902,13 +2902,10 @@ function postFightLogic(f){
       var thisR=rounds[rKeys[ki]];
       var nextR=rounds[rKeys[ki+1]];
       if(!nextR) continue;
-      // Chaque combat du nextR[ni] attend les vainqueurs de thisR[ni*2] et thisR[ni*2+1]
-      // S'il y a un exempt (thisR.length impair), le dernier vainqueur est dans nextR comme combattant déjà rempli (pas locked)
       nextR.forEach(function(nf,ni){
-        if(!nf.locked) return; // déjà débloqué ou exempt déjà placé
+        if(!nf.locked) return;
         var srcA=thisR[ni*2];
         var srcB=thisR[ni*2+1];
-        // Les deux sources doivent exister et être terminées
         if(!srcA||!srcA.done) return;
         if(!srcB||!srcB.done) return;
         nf.a=cloneF(srcA[srcA.winner]);
@@ -2918,7 +2915,7 @@ function postFightLogic(f){
         toast('⚡ '+nf.lbl+' débloqué !','ok');
       });
     }
-    // Petite finale : perdants des 2 derniers SF
+    // Petite finale
     if(petite&&petite.locked&&rKeys.length>=2){
       var sfR=rounds[rKeys[rKeys.length-2]];
       var sfDone=sfR?sfR.filter(function(ff){return ff.done;}):[];
@@ -2929,6 +2926,8 @@ function postFightLogic(f){
         toast('🥉 Combat 3e place débloqué !','ok');
       }
     }
+    // Resync pool.fights depuis FIGHTS[]
+    pool.fights.forEach(function(pf){ syncFight(pf); });
   }
 }
 function renderDone(f){
