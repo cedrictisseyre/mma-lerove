@@ -2088,12 +2088,12 @@ function buildFights(fighters,format,cat,dur,startId){
         // Verrouillé si on attend des vainqueurs, ou si ce n'est pas le tour 1
         var lk=(sA.type==='winner'||sB.type==='winner')||!isF;
         var ff2=mkF(id++,cat,dur,lb,tp,fA2,fB2,lk);
-        ff2._round=tN-1; ff2._pos=j;
+        ff2.round_=tN-1; ff2.pos_=j;
         // Mémoriser les sources pour propagation
-        if(sA.type==='winner') ff2._srcA=sA.fightId;
-        if(sB.type==='winner') ff2._srcB=sB.fightId;
+        if(sA.type==='winner') ff2.srcA_=sA.fightId;
+        if(sB.type==='winner') ff2.srcB_=sB.fightId;
         // Exempt connu directement en B (ex : T1 a un exempt → T2 finale connaît déjà ce combattant)
-        if(sB.type==='fighter'&&!isF) ff2._exemptB=sB.f;
+        if(sB.type==='fighter'&&!isF) ff2.exemptB_=sB.f;
         fs.push(ff2);
         nxt.push({type:'winner',fightId:ff2.id});
       }
@@ -2101,8 +2101,8 @@ function buildFights(fighters,format,cat,dur,startId){
       slots=nxt;
     }
     // Combat 3e place : si le round avant la finale a 2+ vrais combats
-    var maxR=fs.filter(function(x){return x.cat===cat;}).reduce(function(m,x){return Math.max(m,x._round||0);},0);
-    var sfFights=fs.filter(function(x){return x.cat===cat&&x._round===maxR-1;});
+    var maxR=fs.filter(function(x){return x.cat===cat;}).reduce(function(m,x){return Math.max(m,x.round_||0);},0);
+    var sfFights=fs.filter(function(x){return x.cat===cat&&x.round_===maxR-1;});
     if(sfFights.length>=2){
       fs.push(mkF(id++,cat,dur,"Combat 3e place","elim-3",cloneF(phF),cloneF(phF),true));
     }
@@ -2894,18 +2894,18 @@ function postFightLogic(f){
       if(!nf.locked||nf.type==='elim-3') return;
       // Résoudre côté A
       var aOk=false, aF=null;
-      if(nf._srcA!==undefined){
-        var srcA=allFights.find(function(x){return x.id==nf._srcA;});
+      if(nf.srcA_!==undefined){
+        var srcA=allFights.find(function(x){return x.id==nf.srcA_;});
         if(srcA&&srcA.done){ aOk=true; aF=cloneF(srcA[srcA.winner]); }
       } else { aOk=true; aF=nf.a; } // déjà connu à la construction
       if(!aOk) return;
       // Résoudre côté B
       var bOk=false, bF=null;
-      if(nf._exemptB){
+      if(nf.exemptB_){
         // Exempt direct : combattant déjà connu
-        bOk=true; bF=nf._exemptB;
-      } else if(nf._srcB!==undefined){
-        var srcB=allFights.find(function(x){return x.id==nf._srcB;});
+        bOk=true; bF=nf.exemptB_;
+      } else if(nf.srcB_!==undefined){
+        var srcB=allFights.find(function(x){return x.id==nf.srcB_;});
         if(srcB&&srcB.done){ bOk=true; bF=cloneF(srcB[srcB.winner]); }
       } else { bOk=true; bF=nf.b; }
       if(!bOk) return;
@@ -2917,7 +2917,7 @@ function postFightLogic(f){
     var petite=allFights.find(function(ff){return ff.type==='elim-3';});
     if(petite&&petite.locked){
       var sfFights=allFights.filter(function(ff){
-        return ff.type!=='elim-3'&&ff.done&&ff._round===allFights.filter(function(x){return x.type==='elim-f';}).reduce(function(m,x){return x._round-1;},0);
+        return ff.type!=='elim-3'&&ff.done&&ff.round_===allFights.filter(function(x){return x.type==='elim-f';}).reduce(function(m,x){return x.round_-1;},0);
       });
       if(sfFights.length>=2){
         petite.a=cloneF(sfFights[0][sfFights[0].winner==='a'?'b':'a']);
@@ -3741,7 +3741,7 @@ function bracketElim(fights,fighters){
   var rounds={};
   fights.forEach(function(f){
     if(f.type==='elim-3') return;
-    var r=f._round!==undefined?f._round:0;
+    var r=f.round_!==undefined?f.round_:0;
     if(!rounds[r]) rounds[r]=[];
     rounds[r].push(f);
   });
