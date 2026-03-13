@@ -1062,7 +1062,7 @@ function doLogin(){
 
 
 // SWITCH TABLE / RETOUR ADMIN
-function switchToTable(t){
+function switchToTable(t,skipAppel){
   role=t;
   document.getElementById("admintabs").style.display="none";
   document.getElementById("tbar").style.display="block";
@@ -1071,6 +1071,8 @@ function switchToTable(t){
   if(myPools.length===0){
     showPage("pg-list");
     document.getElementById("list-content").innerHTML="<div style=\"font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px;line-height:2\">⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
+  } else if(skipAppel){
+    goList();
   } else {
     goAppelTable();
   }
@@ -1872,7 +1874,7 @@ function renderLive(){
     btnAcces.className="btn "+(td.current?"su":"gh")+" full";
     btnAcces.style.cssText="margin-top:10px;font-family:var(--fm);font-size:.6rem;letter-spacing:2px";
     btnAcces.textContent=td.current?"⚡ ACCÉDER — COMBAT EN COURS":"🪑 ACCÉDER À LA TABLE";
-    btnAcces.onclick=(function(tv){return function(e){e.stopPropagation();switchToTable(tv);};})(td.t);
+    btnAcces.onclick=(function(tv,hasCurrent){return function(e){e.stopPropagation();switchToTable(tv,hasCurrent);};})(td.t,!!td.current);
     body.appendChild(btnAcces);
 
     card.appendChild(body);
@@ -2491,7 +2493,7 @@ function renderResultats(){
       btn.className="btn gh";
       btn.style.cssText="font-family:var(--fm);font-size:.6rem;letter-spacing:2px";
       btn.textContent="🪑 "+pair[1];
-      btn.onclick=(function(tv){return function(){switchToTable(tv);};})(pair[0]);
+      btn.onclick=(function(tv){return function(){switchToTable(tv,true);};})(pair[0]);
       wrap.appendChild(btn);
     });
   }
