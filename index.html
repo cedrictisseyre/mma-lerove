@@ -871,8 +871,13 @@ function fbInit(){
     // Sync chrono live — actif dès le démarrage pour tous les appareils
     _fbRef.child('liveChrono').on('value',function(snap){
       window._livChronoData=snap.val();
-      _liveChrono=true; // marquer comme initialisé
-      // Mettre à jour l'affichage suivi si ouvert
+      _liveChrono=true;
+      var ps=document.getElementById('pg-suivi');
+      if(ps&&ps.style.display!=='none') renderSuivi();
+    });
+    // Sync statut live (arrêt arbitre + vainqueur) — actif dès le démarrage
+    _fbRef.child('liveStatus').on('value',function(snap){
+      window._liveStatus=snap.val();
       var ps=document.getElementById('pg-suivi');
       if(ps&&ps.style.display!=='none') renderSuivi();
     });
@@ -2488,6 +2493,8 @@ function stopChrono(){
   // Publier l'arrêt sur Firebase — chrono figé sur tous les appareils
   if(_fbRef){
     try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:false,stopped:true,ts:Date.now()});}catch(e){}
+    var f=FIGHTS[cid];
+    try{_fbRef.child('liveStatus').set({type:'stop',nomA:f?f.a.nom+' '+f.a.pre:'',nomB:f?f.b.nom+' '+f.b.pre:'',ts:Date.now()});}catch(e){}
   }
   saveState(); // Synchro FIGHTS vers tous les appareils
   renderPickBtns();showZone("z3");toast("⏹ Arrete","warn");
@@ -2536,11 +2543,10 @@ function validateResult(){
   showZone("z5"); renderDone(f); renderNext();
   // Stopper le chrono local et publier le vainqueur sur Firebase
   killTimer();
-  if(_fbRef){try{_fbRef.child('liveChrono').set({
-    cid:f.id, secs:0, running:false, stopped:false,
-    winner:{nom:f[pendwin].nom, pre:f[pendwin].pre, e:f[pendwin].e||'🏆'},
-    ts:Date.now()
-  });}catch(e){}}
+  if(_fbRef){
+    try{_fbRef.child('liveChrono').set({cid:f.id,secs:0,running:false,stopped:false,ts:Date.now()});}catch(e){}
+    try{_fbRef.child('liveStatus').set({type:'win',nom:f[pendwin].nom,pre:f[pendwin].pre,e:f[pendwin].e||'🏆',ts:Date.now()});}catch(e){}
+  }
   // Vérif fin de catégorie
   checkCatTermine(f.cat);
 
@@ -3483,13 +3489,17 @@ function fightRow(f,label){
       }
     }
   }
-  // Vainqueur — affiché si combat terminé (source : f directement)
-  if(isDone&&f.winner){
-    var wObj=f.winner==="a"?f.a:f.b;
+  // Arrêt arbitre depuis liveStatus (indépendant de cid)
+  var ls=window._liveStatus;
+  if(isLive&&ls&&ls.type==='stop'){
+    s+="<div style='text-align:center;font-family:var(--fh);font-size:.7rem;letter-spacing:3px;color:var(--red2);margin-top:6px'>⏹ ARRÊT ARBITRE</div>";
+  }
+  // Vainqueur depuis liveStatus
+  if(ls&&ls.type==='win'){
     s+="<div style='text-align:center;margin-top:8px;padding:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px'>";
     s+="<div style='font-family:var(--fm);font-size:.5rem;letter-spacing:3px;color:var(--muted);margin-bottom:4px'>VAINQUEUR</div>";
-    s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(wObj.e||'🏆')+"</div>";
-    s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+wObj.nom+" "+wObj.pre+"</div>";
+    s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(ls.e||'🏆')+"</div>";
+    s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+ls.nom+" "+ls.pre+"</div>";
     s+="</div>";
   }
   s+="</div></div>";
