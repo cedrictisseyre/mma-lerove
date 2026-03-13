@@ -3425,14 +3425,22 @@ function fightRow(f,label){
   if(isLive){
     var lcd=window._livChronoData;
     var lcdSecs=null;
-    if(lcd&&lcd.running&&lcd.ts){
-      var elapsed=Math.round((Date.now()-lcd.ts)/1000);
-      lcdSecs=Math.max(0,lcd.secs-elapsed);
+    // Afficher le chrono uniquement pour le combat en cours (cid doit correspondre)
+    if(lcd&&lcd.cid===f.id){
+      if(lcd.running&&lcd.ts){
+        // Chrono qui tourne : calculer le temps écoulé depuis la dernière synchro
+        var elapsed=Math.round((Date.now()-lcd.ts)/1000);
+        lcdSecs=Math.max(0,lcd.secs-elapsed);
+      } else {
+        // Chrono en pause : afficher le temps figé
+        lcdSecs=lcd.secs;
+      }
     }
     if(lcdSecs!==null){
+      var isPaused=lcd&&!lcd.running;
       s+="<div style='text-align:center;font-family:var(--fh);font-size:2.8rem;"+
-         (lcdSecs<=10?"color:var(--red2);animation:pulse .5s infinite":"color:var(--gold)")+
-         ";letter-spacing:4px;margin-top:6px'>"+fmt(lcdSecs)+"</div>";
+         (lcdSecs<=10?"color:var(--red2);animation:pulse .5s infinite":(isPaused?"color:var(--muted)":"color:var(--gold)"))+
+         ";letter-spacing:4px;margin-top:6px'>"+fmt(lcdSecs)+(isPaused?" <span style='font-size:1rem'>⏸</span>":"")+"</div>";
     }
   }
   s+="</div></div>";
