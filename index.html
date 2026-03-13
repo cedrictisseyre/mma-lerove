@@ -3448,7 +3448,7 @@ function fightRow(f,label){
   var isLive=!f.done&&!f.locked;
   var isDone=f.done;
   var isWait=f.locked||(!f.done&&f.locked);
-  var wA=f.winner===f.a.id;
+  var wA=f.winner==="a";
   var roleA=isDone?(wA?'win':'lose'):(isLive?'live':'wait');
   var roleB=isDone?(!wA?'win':'lose'):(isLive?'live':'wait');
   var borderColor=isDone?'rgba(34,197,94,.3)':isLive?'rgba(200,0,10,.3)':'rgba(255,255,255,.05)';
@@ -3483,13 +3483,13 @@ function fightRow(f,label){
       }
     }
   }
-  // Vainqueur — affiché même après f.done=true
-  var lcd2=window._livChronoData;
-  if(lcd2&&lcd2.winner&&lcd2.cid==f.id){
+  // Vainqueur — affiché si combat terminé (source : f directement)
+  if(isDone&&f.winner){
+    var wObj=f.winner==="a"?f.a:f.b;
     s+="<div style='text-align:center;margin-top:8px;padding:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px'>";
     s+="<div style='font-family:var(--fm);font-size:.5rem;letter-spacing:3px;color:var(--muted);margin-bottom:4px'>VAINQUEUR</div>";
-    s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(lcd2.winner.e||'🏆')+"</div>";
-    s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+lcd2.winner.nom+" "+lcd2.winner.pre+"</div>";
+    s+="<div style='font-size:1.8rem;margin-bottom:2px'>"+(wObj.e||'🏆')+"</div>";
+    s+="<div style='font-family:var(--fh);font-size:1.2rem;letter-spacing:2px;color:var(--green)'>"+wObj.nom+" "+wObj.pre+"</div>";
     s+="</div>";
   }
   s+="</div></div>";
