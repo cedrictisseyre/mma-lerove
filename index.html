@@ -2459,10 +2459,26 @@ function tick(){
 }
 function togglePause(){
   var btn=document.getElementById("btnpause");
-  if(trun){clearInterval(tiv);tiv=null;trun=false;btn.textContent="▶ REPRENDRE";toast("⏸ Pause","warn");}
-  else{trun=true;tiv=setInterval(tick,1000);btn.textContent="⏸ PAUSE";toast("▶ Repris","ok");}
+  if(trun){
+    clearInterval(tiv);tiv=null;trun=false;
+    btn.textContent="▶ REPRENDRE";toast("⏸ Pause","warn");
+    // Publier la pause sur Firebase
+    if(_fbRef&&cid!==null){try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:false,ts:Date.now()});}catch(e){}}
+  } else {
+    trun=true;tiv=setInterval(tick,1000);
+    btn.textContent="⏸ PAUSE";toast("▶ Repris","ok");
+    // Publier la reprise sur Firebase
+    if(_fbRef&&cid!==null){try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:true,ts:Date.now()});}catch(e){}}
+  }
 }
-function stopChrono(){killTimer();renderPickBtns();showZone("z3");toast("⏹ Arrete","warn");}
+function stopChrono(){
+  killTimer();
+  // Publier l'arrêt sur Firebase pour que les téléphones parents voient le chrono figé
+  if(_fbRef&&cid!==null){
+    try{_fbRef.child('liveChrono').set({cid:cid,secs:tsecs,running:false,ts:Date.now()});}catch(e){}
+  }
+  renderPickBtns();showZone("z3");toast("⏹ Arrete","warn");
+}
 function killTimer(){clearInterval(tiv);tiv=null;trun=false;}
 function backToRunning(){
   pendwin=null;
@@ -3304,7 +3320,11 @@ function applyRemoteState(data){
 // ── SUIVI PUBLIC ──────────────────────────────────────────────
 function showPublicSuivi(){
   showPage('pg-suivi');
-  if(_fbRef&&!_liveChrono){_liveChrono=_fbRef.child('liveChrono');_liveChrono.on('value',function(snap){window._livChronoData=snap.val();});}
+  if(_fbRef&&!_liveChrono){_liveChrono=_fbRef.child('liveChrono');_liveChrono.on('value',function(snap){
+      window._livChronoData=snap.val();
+      // Forcer un re-rendu immédiat dès que Firebase change (pause, reprise, nouveau combat)
+      renderSuivi();
+    });}
   _suiviTab='all'; _suiviCat='all';
   setSuiviTab('all'); renderSuiviCatFilters(); renderSuivi();
   clearInterval(_suiviTimer);
