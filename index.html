@@ -2579,9 +2579,7 @@ function goFight(id){
   if(!f){toast("Combat introuvable","err");return;}
   if(f.locked){toast("🔒 Terminez les combats precedents","warn");return;}
   cid=id; killTimer(); pendwin=null;
-  if(f.done){renderFight(f);showPage("pg-fight");return;}
-  if(!PD[f.cat]){renderAppel(f.cat);showPage("pg-appel");}
-  else{renderFight(f);showPage("pg-fight");}
+  renderFight(f); showPage("pg-fight");
 }
 function renderAppel(cat){
   var pool=POOLS[cat]; if(!pool) return;
