@@ -2540,6 +2540,12 @@ function selectWin(side){
 function validateResult(){
   if(!pendwin) return;
   var f=FIGHTS[cid]; f.done=true; f.winner=pendwin;
+  // Mettre à jour aussi pool.fights (source de vérité pour renderSuivi)
+  var pool=POOLS[f.cat];
+  if(pool){
+    var pf=pool.fights.find(function(x){return x.id==cid;});
+    if(pf){pf.done=true;pf.winner=pendwin;}
+  }
   applyWin(f); postFightLogic(f);
   toast("🏆 "+f[pendwin].nom+" — Victoire validee","ok");
   if(navigator.vibrate) navigator.vibrate([200,100,400]);
