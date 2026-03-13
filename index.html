@@ -863,10 +863,11 @@ function fbInit(){
         updatePublicStats();
       }
     });
-    // Sync état compétition
+    // Sync état compétition — ignorer si pas de savedAt (= écriture liveChrono/liveStatus seule)
     _fbRef.on('value',function(snap){
       if(_fbIgnoreNext){_fbIgnoreNext=false;return;}
       var data=snap.val(); if(!data) return;
+      if(!data.savedAt) return; // pas un saveState complet
       applyRemoteState(data);
     });
     // Sync chrono live — actif dès le démarrage pour tous les appareils
@@ -2552,14 +2553,13 @@ function validateResult(){
   showZone("z5"); renderDone(f); renderNext();
   // Stopper le chrono local et publier le vainqueur sur Firebase
   killTimer();
+  checkCatTermine(f.cat);
+  checkPoolDone(f.cat);
+  saveState();
+  // Écrire liveStatus APRÈS saveState pour que Firebase ait déjà les bonnes données
   if(_fbRef){
     try{_fbRef.child('liveStatus').set({type:'win',cid:f.id,side:pendwin,nom:f[pendwin].nom,pre:f[pendwin].pre,e:f[pendwin].e||'🏆',ts:Date.now()});}catch(e){}
   }
-  // Vérif fin de catégorie
-  checkCatTermine(f.cat);
-
-  checkPoolDone(f.cat);
-  saveState();
   updateNotifBadge();
   var re=document.getElementById("resultats-content");
   if(re&&re.innerHTML.length>10) setTimeout(renderResultats,200);
