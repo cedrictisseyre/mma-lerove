@@ -2235,7 +2235,18 @@ function doGenPoulesCat(acId, byPoids){
     fights.forEach(function(f){newFights.push(f);});
   });
   newFights.forEach(function(f){FIGHTS.push(f);});
+  // Sauvegarder le mapping ancien_id → objet avant réassignation
+  var idMap={};
+  FIGHTS.forEach(function(f){idMap[f.id]=f;});
   FIGHTS.forEach(function(f,i){f.id=i;});
+  // Mettre à jour srcA_/srcB_ dans pool.fights avec les nouveaux ids
+  cats.forEach(function(cat){
+    var pool=POOLS[cat];if(!pool||!pool.fights)return;
+    pool.fights.forEach(function(pf){
+      if(pf.srcA_!==undefined&&idMap[pf.srcA_]) pf.srcA_=idMap[pf.srcA_].id;
+      if(pf.srcB_!==undefined&&idMap[pf.srcB_]) pf.srcB_=idMap[pf.srcB_].id;
+    });
+  });
 
   var validCats=cats.filter(function(cat){return byPoids[cat].length>0;});
   ac.statut="combats";
