@@ -2893,31 +2893,28 @@ function postFightLogic(f){
       rounds[r].push(ff);
     });
     var rKeys=Object.keys(rounds).map(Number).sort(function(a,b){return a-b;});
-    // Pour chaque round, propager les vainqueurs vers le round suivant
+    // Propager round par round
     for(var ki=0;ki<rKeys.length-1;ki++){
       var thisR=rounds[rKeys[ki]];
       var nextR=rounds[rKeys[ki+1]];
       if(!nextR) continue;
-      // Chercher l'exempt éventuel de ce round (stocké dans pool si besoin)
-      // Les combats du round suivant sont en ordre : nextR[0] prend W(thisR[0]) et W(thisR[1]), etc.
-      var winnersSoFar=[];
-      thisR.forEach(function(ff){ if(ff.done) winnersSoFar.push(cloneF(ff[ff.winner])); });
-      // Aussi ajouter l'exempt si présent (dernier slot de nextR qui n'attend pas de combat)
-      // L'exempt est identifiable : combat nextR[i] avec a.id!=ph ET b.id==ph → déjà rempli à la construction
-      // On cherche les combats nextR encore locked
-      var pairIdx=0;
-      nextR.forEach(function(nf){
-        if(!nf.locked) return;
-        var wA=winnersSoFar[pairIdx*2];
-        var wB=winnersSoFar[pairIdx*2+1];
-        if(!wA||!wB) return;
-        nf.a=wA; nf.b=wB; nf.locked=false;
+      // Chaque combat du nextR[ni] attend les vainqueurs de thisR[ni*2] et thisR[ni*2+1]
+      // S'il y a un exempt (thisR.length impair), le dernier vainqueur est dans nextR comme combattant déjà rempli (pas locked)
+      nextR.forEach(function(nf,ni){
+        if(!nf.locked) return; // déjà débloqué ou exempt déjà placé
+        var srcA=thisR[ni*2];
+        var srcB=thisR[ni*2+1];
+        // Les deux sources doivent exister et être terminées
+        if(!srcA||!srcA.done) return;
+        if(!srcB||!srcB.done) return;
+        nf.a=cloneF(srcA[srcA.winner]);
+        nf.b=cloneF(srcB[srcB.winner]);
+        nf.locked=false;
         syncFight(nf);
         toast('⚡ '+nf.lbl+' débloqué !','ok');
-        pairIdx++;
       });
     }
-    // Petite finale : les 2 perdants du dernier round avant la finale
+    // Petite finale : perdants des 2 derniers SF
     if(petite&&petite.locked&&rKeys.length>=2){
       var sfR=rounds[rKeys[rKeys.length-2]];
       var sfDone=sfR?sfR.filter(function(ff){return ff.done;}):[];
