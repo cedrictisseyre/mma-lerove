@@ -932,6 +932,11 @@ var INSC_KEY="mma_inscriptions_18avril";
 function showPage(id){
   for(var i=0;i<PAGES.length;i++) document.getElementById(PAGES[i]).style.display="none";
   document.getElementById(id).style.display=(id==="pg-login")?"flex":"block";
+  // Cacher la barre table si on va sur accueil ou login
+  if(id==='pg-public'||id==='pg-login'){
+    var tb=document.getElementById('tbar');if(tb)tb.style.display='none';
+    if(id==='pg-public'){role='';} // Réinitialiser le rôle sur accueil
+  }
   window.scrollTo(0,0);
   try{if(id==="pg-login")history.pushState({page:'login'},'','');}catch(e){}
   if(id==="pg-public"){setTimeout(function(){updateTicker();updatePublicStats();},100);setTimeout(function(){updatePublicStats();},1500);}if(id!=="pg-suivi")TimerManager.clear("suivi");
@@ -3195,9 +3200,10 @@ function updatePublicStats(){
   }
   var cel=document.getElementById('public-participant-count');
   if(cel){
-    // COMBATTANTS = inscrits publics + ajouts manuels admin (source unique)
-    var total = COMBATTANTS.length || _inscriptions.length;
-    cel.textContent = total;
+    // Compter inscrits publics + manuels sans doublon
+    var manuelsCount = COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';}).length;
+    var total = _inscriptions.length + manuelsCount;
+    cel.textContent = total || _inscriptions.length;
   }
 }
 
