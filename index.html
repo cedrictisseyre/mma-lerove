@@ -3053,7 +3053,7 @@ function deleteFighter(id){
   // Supprimer dans _inscriptions (source unique Firebase)
   _inscriptions = _inscriptions.filter(function(x){return x.id!==id;});
   COMBATTANTS = COMBATTANTS.filter(function(x){return x.id!==id;});
-  toast("🗑 "+cb.nom+" supprimé","warn");
+  toast("🗑 "+cb.nom+" supprimé","err");
   saveInscriptions(); // Synchronise sur tous les appareils
   renderInscriptions();
 }
