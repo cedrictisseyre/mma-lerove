@@ -2840,7 +2840,9 @@ function syncFight(pf){
 }
 
 function postFightLogic(f){
-  var pool=POOLS[f.cat]; if(!pool) return;
+  var pool=POOLS[f.cat]; 
+  console.log('[pfl] f.cat='+f.cat+' pool='+(pool?'ok format='+pool.format:'NULL'));
+  if(!pool) return;
   // ── Nordique4 : départage si égalité pour la 1ère place ──
   if(pool.format==="nordique4"){
     var allMain=pool.fights.filter(function(x){return x.type==="nordique";});
