@@ -400,6 +400,12 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
   <div class="wrap" id="list-content"></div>
 </div>
 
+<div id="pg-appel-table" style="display:none">
+  <div class="wrap">
+    <div id="appel-table-content"></div>
+  </div>
+</div>
+
 <div id="pg-appel" style="display:none">
   <div class="wrap">
     <div class="backbtn" onclick="goList()">← LISTE DES COMBATS</div>
@@ -1061,15 +1067,123 @@ function switchToTable(t){
   document.getElementById("admintabs").style.display="none";
   document.getElementById("tbar").style.display="block";
   document.getElementById("tbname").textContent="🪑 "+t.replace("T","Table ");
-  var anyFight=FIGHTS.length>0;
-  if(!anyFight){
+  var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===t;});
+  if(myPools.length===0){
     showPage("pg-list");
     document.getElementById("list-content").innerHTML="<div style=\"font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px;line-height:2\">⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
   } else {
-    goList();
+    goAppelTable();
   }
   toast("Acces "+t.replace("T","Table "),"ok");
-  
+}
+
+function goAppelTable(){
+  killTimer();
+  renderAppelTable();
+  showPage("pg-appel-table");
+}
+
+function renderAppelTable(){
+  var el=document.getElementById("appel-table-content"); if(!el) return;
+  var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
+  if(myPools.length===0){
+    el.innerHTML="<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px'>Aucune poule attribuée à cette table.</div>";
+    return;
+  }
+  var h="";
+  h+="<div style='background:linear-gradient(135deg,rgba(232,184,75,.12),rgba(232,184,75,.04));border:1px solid rgba(232,184,75,.3);border-left:4px solid var(--gold);border-radius:8px;padding:14px 16px;margin-bottom:20px'>";
+  h+="<div style='font-family:var(--fh);font-size:1.3rem;letter-spacing:3px;color:var(--gold)'>📋 APPEL — "+role.replace("T","TABLE ")+"</div>";
+  h+="<div style='font-family:var(--fm);font-size:.58rem;color:var(--muted);margin-top:4px;letter-spacing:1px'>Vérifiez la présence de chaque combattant avant de commencer</div>";
+  h+="</div>";
+
+  myPools.forEach(function(cat){
+    var pool=POOLS[cat]; if(!pool) return;
+    if(!PM[cat]) PM[cat]={};
+    pool.fighters.forEach(function(fi){if(PM[cat][fi.id]===undefined) PM[cat][fi.id]=null;});
+    var pm=PM[cat];
+    var allChk=pool.fighters.every(function(fi){return pm[fi.id]!==null;});
+    var allPres=pool.fighters.every(function(fi){return pm[fi.id]===true;});
+
+    h+="<div class='card' style='margin-bottom:16px'>";
+    h+="<div style='font-family:var(--fh);font-size:1rem;letter-spacing:2px;margin-bottom:4px'>"+cat+"</div>";
+    h+="<div style='font-family:var(--fm);font-size:.55rem;color:var(--muted);margin-bottom:12px'>"+getFmtLabel(pool.format)+" · ⏱ "+(pool.dur===180?"3 MIN":"4 MIN")+"</div>";
+
+    pool.fighters.forEach(function(fi){
+      var s2=pm[fi.id];
+      var cls=s2===true?"fcheck pres":s2===false?"fcheck abs":"fcheck";
+      var ico=s2===true?"✔":s2===false?"✕":"?";
+      var lbl=s2===true?"<span class='ok'>PRÉSENT</span>":s2===false?"<span class='err'>ABSENT</span>":"<span class='mut'>APPEL...</span>";
+      h+="<div class='"+cls+"' onclick=\"togglePresTable('"+cat+"','"+fi.id+"')\">";
+      h+="<div style='font-size:1.7rem;flex-shrink:0'>"+(fi.e||"🥋")+"</div>";
+      h+="<div style='flex:1;min-width:0'>";
+      h+="<div style='font-family:var(--fh);font-size:1.05rem'>"+fi.nom+" "+fi.pre+"</div>";
+      h+="<div style='font-family:var(--fm);font-size:.57rem;color:var(--muted);margin-top:2px'>"+fi.club+"</div>";
+      h+="</div>";
+      h+="<div style='display:flex;flex-direction:column;align-items:center;gap:3px'><div class='fcst'>"+ico+"</div><div style='font-family:var(--fm);font-size:.5rem'>"+lbl+"</div></div>";
+      h+="</div>";
+    });
+    h+="</div>";
+  });
+
+  // Bouton valider si tous appelés
+  var allPoolsChecked=myPools.every(function(cat){
+    var pool=POOLS[cat]; if(!pool) return true;
+    var pm=PM[cat]||{};
+    return pool.fighters.every(function(fi){return pm[fi.id]!==null;});
+  });
+
+  h+="<div style='margin-top:8px'>";
+  if(allPoolsChecked){
+    h+="<button class='btn su lg full' onclick='validerAppelTable()'>✅ APPEL TERMINÉ — COMMENCER</button>";
+  } else {
+    h+="<button class='btn gh lg full' disabled style='opacity:.4'>⏳ Appelez tous les combattants...</button>";
+  }
+  h+="</div>";
+
+  el.innerHTML=h;
+}
+
+function togglePresTable(cat,fid){
+  if(!PM[cat]) PM[cat]={};
+  var cur=PM[cat][fid];
+  PM[cat][fid]=cur===null?true:cur===true?false:null;
+  renderAppelTable();
+  var s2=PM[cat][fid];
+  if(s2===true) toast("✔ Présent","ok"); else if(s2===false) toast("✕ Absent","err");
+}
+
+function validerAppelTable(){
+  // Valider l'appel pour toutes les poules de cette table
+  var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
+  myPools.forEach(function(cat){
+    var pool=POOLS[cat]; if(!pool) return;
+    var pm=PM[cat]||{};
+    var presents=pool.fighters.filter(function(fi){return pm[fi.id]===true;});
+    PD[cat]=true;
+    var newFmt=getFormat(presents.length);
+    if(newFmt!==pool.format||presents.length<pool.fighters.length){
+      FIGHTS=FIGHTS.filter(function(f){return f.cat!==cat;});
+      var nf=presents.length>=2?buildFights(presents,newFmt,cat,pool.dur,FIGHTS.length):[];
+      // Mapping ids après buildFights
+      var idMap={};
+      FIGHTS.forEach(function(f){idMap[f.id]=f;});
+      nf.forEach(function(f){FIGHTS.push(f);});
+      FIGHTS.forEach(function(f,i){f.id=i;});
+      myPools.forEach(function(c2){
+        var p2=POOLS[c2];if(!p2||!p2.fights)return;
+        p2.fights.forEach(function(pf){
+          if(pf.srcA_!==undefined&&idMap[pf.srcA_]) pf.srcA_=idMap[pf.srcA_].id;
+          if(pf.srcB_!==undefined&&idMap[pf.srcB_]) pf.srcB_=idMap[pf.srcB_].id;
+        });
+      });
+      pool.fights=nf; pool.format=newFmt; pool.fighters=presents;
+      if(presents.length<2) toast("⚠ Moins de 2 présents — poule annulée","warn");
+      else toast("Format recalculé : "+getFmtLabel(newFmt),"ok");
+    }
+  });
+  saveState();
+  goList();
+  toast("✅ Appel validé — bonne compétition !","ok");
 }
 function backToAdmin(){
   role="admin";
