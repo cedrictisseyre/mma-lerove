@@ -274,12 +274,12 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
 .live-prog{font-family:var(--fm);font-size:.52rem;color:var(--muted);margin-top:3px}
 .launch-bar{background:linear-gradient(135deg,rgba(200,0,10,.1),rgba(200,0,10,.04));border:1px solid rgba(200,0,10,.3);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 /* ── NAV HYBRIDE ── */
-.hybrid-nav{position:fixed;bottom:0;left:0;right:0;background:var(--dark2);border-top:1px solid var(--border);display:none;z-index:100;padding:6px 8px;gap:6px}
-.hybrid-nav.visible{display:flex}
-.hnav-btn{flex:1;font-family:var(--fm);font-size:.55rem;letter-spacing:1px;padding:8px 4px;border-radius:6px;cursor:pointer;border:1px solid var(--border2);background:var(--dark3);color:var(--muted);text-align:center;transition:all .2s;min-width:0}
-.hnav-btn:hover{border-color:var(--red2);color:var(--text)}
-.hnav-btn.on{border-color:var(--red2);background:rgba(200,0,10,.1);color:var(--red2)}
-.page-pb{padding-bottom:60px}
+
+
+
+
+
+
 
 /* ── BOUTONS CATÉGORIE POIDS (pesée) ── */
 .catpoids-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
@@ -474,17 +474,6 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
 <div id="notif-badge" class="notif-badge" style="display:none" onclick="showNotifPanel()"></div>
 
 <!-- NAV HYBRIDE PERMANENTE -->
-<div id="hybrid-nav" class="hybrid-nav">
-  <div class="hnav-btn" id="hn-accueil" onclick="showPage('pg-public')">🏠<br>ACCUEIL</div>
-  <div class="hnav-btn" id="hn-admin"  onclick="hnav('admin')" style="display:none">👑<br>ADMIN</div>
-  <div class="hnav-btn" id="hn-live"   onclick="hnav('live')" style="display:none">🖥️<br>SUIVI</div>
-  <div class="hnav-btn" id="hn-T1"     onclick="hnav('T1')" style="display:none">🪑<br>TABLE 1</div>
-  <div class="hnav-btn" id="hn-T2"     onclick="hnav('T2')" style="display:none">🪑<br>TABLE 2</div>
-  <div class="hnav-btn" id="hn-T3"     onclick="hnav('T3')" style="display:none">🪑<br>TABLE 3</div>
-  <div class="hnav-btn" id="hn-T4"     onclick="hnav('T4')" style="display:none">🪑<br>TABLE 4</div>
-</div>
-  <!-- Firebase SDKs -->
-
 <div id="pg-public" style="display:none;min-height:100vh;background:var(--dark1)">
   <div style="background:#0d0900;border-top:1px solid rgba(232,184,75,.3);border-bottom:1px solid rgba(232,184,75,.3);overflow:hidden;position:relative;height:36px;display:flex;align-items:center">
     <div style="position:absolute;left:0;top:0;bottom:0;width:50px;background:linear-gradient(to right,#0d0900,transparent);z-index:2"></div>
@@ -966,16 +955,16 @@ function doLogin(){
     };
     if(hex!==H[r]){var le=$('lerr');if(le)le.style.display='block';var ip=$('inp-code');if(ip){ip.value='';ip.focus();}return;}
     var le=$('lerr');if(le)le.style.display='none';
-    role=r;showHybridNav();
+    role=r;
     if(role==='admin'){var at=$('admintabs');if(at)at.style.display='block';showPage('pg-admin');renderCats();toast('Acces Admin','ok');}
     else switchToTable(role);
-    updateHnavHighlight();
+    
   }).catch(function(){
     var CODES={admin:'camoincyril',T1:'table1',T2:'table2',T3:'table3',T4:'table4'};
     if(code.trim().toLowerCase()!==CODES[r]){var le=$('lerr');if(le)le.style.display='block';return;}
-    role=r;showHybridNav();
+    role=r;
     if(role==='admin'){showPage('pg-admin');renderCats();toast('Acces Admin','ok');}else switchToTable(role);
-    updateHnavHighlight();
+    
   });
 }
 
@@ -994,7 +983,7 @@ function switchToTable(t){
     goList();
   }
   toast("Acces "+t.replace("T","Table "),"ok");
-  updateHnavHighlight();
+  
 }
 function backToAdmin(){
   role="admin";
@@ -1004,7 +993,7 @@ function backToAdmin(){
   showPage("pg-admin");
   aTab("resultats");
   toast("Retour Administration","ok");
-  updateHnavHighlight();
+  
 }
 document.getElementById("btn-back-admin").onclick=function(){backToAdmin();};
 
@@ -1023,7 +1012,7 @@ function aTab(tab){
   if(tab==="live")         renderLive();
   if(tab==="resultats")    renderResultats();
   if(tab==="clubs")         renderClubsAdmin();
-  updateHnavHighlight();
+  
 }
 
 // UTILITAIRES
@@ -1525,55 +1514,9 @@ function closeModal(acId){
 // NAV HYBRIDE PERMANENTE
 var _liveInterval = null;
 
-function showHybridNav(){
-  var nav=document.getElementById('hybrid-nav');
-  if(nav) nav.classList.add('visible');
-  PAGES.forEach(function(p){var el=document.getElementById(p);if(el)el.classList.add('page-pb');});
-  document.getElementById('pg-admin')&&document.getElementById('pg-admin').classList.add('page-pb');
-  // Afficher seulement les boutons du rôle connecté
-  ['admin','live','T1','T2','T3','T4'].forEach(function(k){
-    var b=document.getElementById('hn-'+k);
-    if(!b) return;
-    if(role==='admin') b.style.display=(k==='admin'||k==='live')?'':'none';
-    else b.style.display=(k===role)?'':'none';
-  });
-}
 
-function updateHnavHighlight(){
-  ["admin","live","T1","T2","T3","T4"].forEach(function(k){
-    var b=document.getElementById("hn-"+k);
-    if(!b) return;
-    if(k==="live") b.classList.toggle("on", role==="admin" && document.getElementById("tab-live") && document.getElementById("tab-live").style.display!=="none");
-    else if(k==="admin") b.classList.toggle("on", role==="admin" && !(document.getElementById("tab-live") && document.getElementById("tab-live").style.display!=="none"));
-    else b.classList.toggle("on", role===k);
-  });
-}
 
-function hnav(target){
-  // Vérifier que l'utilisateur est bien authentifié pour cette destination
-  if(target==="admin" || target==="live"){
-    if(role!=="admin"){ showPage("pg-login"); return; }
-  } else {
-    if(role!==target){ showPage("pg-login"); return; }
-  }
-  killTimer();
-  if(target==="admin"){
-    document.getElementById("admintabs").style.display="block";
-    document.getElementById("tbar").style.display="none";
-    showPage("pg-admin");
-    aTab("inscriptions");
-  } else if(target==="live"){
-    document.getElementById("admintabs").style.display="block";
-    document.getElementById("tbar").style.display="none";
-    showPage("pg-admin");
-    aTab("live");
-  } else {
-    switchToTable(target);
-  }
-  updateHnavHighlight();
-}
 
-// BOUTON LANCER LA COMPÉTITION dans l'attribution
 function checkLaunchReady(){
   // Au moins une poule attribuée
   return Object.keys(POOL_TABLES).length>0;
@@ -1600,7 +1543,7 @@ function injectLaunchBtn(acId){
   btnLive.className="btn su";
   btnLive.style.cssText="font-family:var(--fm);font-size:.62rem;letter-spacing:2px";
   btnLive.textContent="🖥️ SUIVI LIVE";
-  btnLive.onclick=function(){aTab("live"); updateHnavHighlight();};
+  btnLive.onclick=function(){aTab("live"); };
   // Bouton accès rapide tables
   var btnWrap=document.createElement("div");
   btnWrap.style.cssText="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px";
@@ -1609,7 +1552,7 @@ function injectLaunchBtn(acId){
     b.className="btn gh";
     b.style.cssText="font-family:var(--fm);font-size:.58rem;letter-spacing:1px;padding:5px 10px";
     b.textContent="🪑 "+pair[1];
-    b.onclick=(function(tv){return function(){switchToTable(tv);updateHnavHighlight();};})(pair[0]);
+    b.onclick=(function(tv){return function(){switchToTable(tv);};})(pair[0]);
     btnWrap.appendChild(b);
   });
   bar.appendChild(btnLive);
@@ -1658,7 +1601,7 @@ function renderLive(){
     var inProgress=hasPools&&!td.allDone&&td.done>0;
     var cardCls="live-card"+(td.current?" active":td.allDone?" idle":" ");
     card.className=cardCls;
-    card.onclick=(function(tv){return function(){switchToTable(tv);updateHnavHighlight();};})(td.t);
+    card.onclick=(function(tv){return function(){switchToTable(tv);};})(td.t);
 
     // Header
     var hdr=document.createElement("div");
@@ -1729,7 +1672,7 @@ function renderLive(){
     btnAcces.className="btn "+(td.current?"su":"gh")+" full";
     btnAcces.style.cssText="margin-top:10px;font-family:var(--fm);font-size:.6rem;letter-spacing:2px";
     btnAcces.textContent=td.current?"⚡ ACCÉDER — COMBAT EN COURS":"🪑 ACCÉDER À LA TABLE";
-    btnAcces.onclick=(function(tv){return function(e){e.stopPropagation();switchToTable(tv);updateHnavHighlight();};})(td.t);
+    btnAcces.onclick=(function(tv){return function(e){e.stopPropagation();switchToTable(tv);};})(td.t);
     body.appendChild(btnAcces);
 
     card.appendChild(body);
@@ -1743,7 +1686,7 @@ function renderLive(){
   btnBack.className="btn gh full";
   btnBack.style.cssText="font-family:var(--fm);font-size:.6rem;letter-spacing:2px;margin-bottom:8px";
   btnBack.textContent="← RETOUR CATÉGORIES / PESÉE";
-  btnBack.onclick=function(){aTab("cats"); updateHnavHighlight();};
+  btnBack.onclick=function(){aTab("cats"); };
   el.appendChild(btnBack);
 
   syncLiveChrono();
