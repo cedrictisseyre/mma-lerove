@@ -2085,7 +2085,9 @@ function buildFights(fighters,format,cat,dur,startId){
         var isLastTour=(paires===1&&!exempt);
         var lbl=isLastTour?"🏆 FINALE":"Tour "+tourNum+" — Combat "+(i+1);
         var typ=isLastTour?"elim-f":"elim-t"+tourNum;
-        var ff=mkF(id++,cat,dur,lbl,typ,cloneF(fa),cloneF(fb),false);
+        // Tour 1 = débloqué. Tours suivants = locked jusqu'à ce que les vainqueurs soient connus
+        var isFirstTour=(tourNum===1);
+        var ff=mkF(id++,cat,dur,lbl,typ,cloneF(fa),cloneF(fb),!isFirstTour);
         ff._round=tourNum-1; ff._pos=i;
         thisTour.push(ff); fs.push(ff);
         nextSlots.push(cloneF(phF)); // placeholder vainqueur
@@ -2549,7 +2551,7 @@ function sGong(){try{var c=ac();[0,.5,1].forEach(function(d){[[110,1],[220,.7],[
 
 // CHRONO
 function startChrono(){
-  var f=FIGHTS[cid]; tsecs=f.dur; twarn=false;
+  var f=getFight(cid); tsecs=f.dur; twarn=false;
   document.getElementById("tdisp").textContent=fmt(tsecs);
   document.getElementById("tdisp").className="";
   document.getElementById("tendmsg").style.display="none";
@@ -2604,7 +2606,7 @@ function backToRunning(){
 
 // PICK / CONFIRM / VALIDATE
 function renderPickBtns(){
-  var f=FIGHTS[cid],h="";
+  var f=getFight(cid),h="";
   ["a","b"].forEach(function(s){
     h+="<div class=\"pickbtn\" id=\"pb-"+s+"\" onclick=\"selectWin('"+s+"')\">";
     h+="<div style=\"font-size:2rem;margin-bottom:5px\">"+(f[s].e||"🥋")+"</div>";
@@ -2619,7 +2621,7 @@ function selectWin(side){
   document.getElementById("pb-"+side).classList.add("on");
   document.getElementById("card-a").className="fc"+(side==="a"?" fsel":"");
   document.getElementById("card-b").className="fc"+(side==="b"?" fsel":"");
-  var w=FIGHTS[cid][side];
+  var w=getFight(cid)[side];
   document.getElementById("cbox").innerHTML=
     "<div style=\"font-family:var(--fm);font-size:.58rem;letter-spacing:3px;color:var(--muted);margin-bottom:6px\">VAINQUEUR DÉSIGNÉ</div>"+
     "<div style=\"font-size:2.5rem;margin:8px 0\">🏆</div>"+
@@ -2629,7 +2631,7 @@ function selectWin(side){
 }
 function validateResult(){
   if(!pendwin) return;
-  var f=FIGHTS[cid]; f.done=true; f.winner=pendwin;
+  var f=getFight(cid); f.done=true; f.winner=pendwin;
   // Mettre à jour aussi pool.fights (source de vérité pour renderSuivi)
   var pool=POOLS[f.cat];
   if(pool){
@@ -2941,7 +2943,7 @@ function renderDone(f){
     "<button class=\"btn gh full\" style=\"margin-top:8px;font-size:.8rem\" onclick=\"undoResult()\">↩ Annuler ce resultat</button>";
 }
 function undoResult(){
-  var f=FIGHTS[cid]; f.done=false; f.winner=null; f.forfait=false;
+  var f=getFight(cid); f.done=false; f.winner=null; f.forfait=false;
   ["a","b"].forEach(function(s){document.getElementById("card-"+s).className="fc";document.getElementById("wb-"+s).style.display="none";document.getElementById("lb-"+s).style.display="none";});
   tsecs=f.dur; twarn=false; pendwin=null;
   document.getElementById("tdisp").textContent=fmt(f.dur);
