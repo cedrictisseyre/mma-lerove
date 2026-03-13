@@ -3927,7 +3927,7 @@ function deleteClub(i){if(!confirm('Supprimer '+CLUBS[i]+' ?'))return;CLUBS.spli
     }
   });
 
-  if(hasState&&!_savedRole){
+  if(hasState){
     var age=getSaveAge();
     var banner=document.createElement('div');
     banner.id='resume-banner';
