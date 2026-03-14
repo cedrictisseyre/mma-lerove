@@ -1021,6 +1021,8 @@ function applyRemoteState(data){
         var hasNewPool=myPools.some(function(cat){return !_appelFait[cat];});
         if(hasNewPool&&myPools.length>0){
           // Nouvelle poule détectée — déclencher l'appel quelle que soit la page courante
+          // Fermer la modale podium si elle est ouverte
+          closePodiumModal();
           goAppelTable();
         } else if(!onAppelTable&&!onFight){
           if(pgList&&pgList.style.display!=='none'){
@@ -3234,7 +3236,9 @@ function renderNext(){
   var el=document.getElementById("next-wrap");
   var next=getMyFights().find(function(f){return !f.done&&!f.locked;});
   if(!next){
-    el.innerHTML="<div style=\"text-align:center;padding:24px;color:var(--gold);font-family:var(--fh);font-size:1.5rem;letter-spacing:3px\">🏁 TOUS LES COMBATS TERMINÉS !</div><button class=\"btn gh full\" onclick=\"goList()\" style=\"margin-top:8px\">← Liste</button>";
+    // Combats de cette poule terminés → page d'attente
+    setTimeout(function(){showAttente();},1500);
+    el.innerHTML="<div style='text-align:center;padding:24px;color:var(--gold);font-family:var(--fh);font-size:1.5rem;letter-spacing:3px'>🏁 POULE TERMINÉE !</div>";
     return;
   }
   var wrap=document.createElement("div");
@@ -3251,6 +3255,17 @@ function renderNext(){
   bb.className="btn gh full"; bb.style.marginTop="8px";
   bb.textContent="← Retour a la liste"; bb.onclick=function(){goList();};
   el.appendChild(bb);
+}
+
+function showAttente(){
+  // Page d'attente entre 2 poules — surveille automatiquement l'arrivée d'une nouvelle poule
+  showPage('pg-list');
+  document.getElementById('list-content').innerHTML=
+    "<div style='text-align:center;padding:60px 20px'>"+
+    "<div style='font-size:3rem;margin-bottom:16px'>⏳</div>"+
+    "<div style='font-family:var(--fh);font-size:1.3rem;letter-spacing:3px;color:var(--gold);margin-bottom:8px'>EN ATTENTE</div>"+
+    "<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);line-height:2'>Poule terminée.<br>En attente de la prochaine attribution...<br><span style='font-size:.5rem;opacity:.5'>Mise à jour automatique</span></div>"+
+    "</div>";
 }
 function renderNRem(currentId){
   var el=document.getElementById("nrem-wrap"); if(!el) return;
