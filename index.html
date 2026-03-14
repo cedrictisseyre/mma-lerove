@@ -768,7 +768,7 @@ function loadState(){
     if(state.pools && state.fights){
       Object.values(POOLS).forEach(function(pool){
         if(!pool.fights) return;
-        pool.fights.forEach(function(pf){
+        pFights(pool).forEach(function(pf){
           var gf=FIGHTS.find(function(x){return x.id===pf.id;});
           if(gf){ gf.a=pf.a; gf.b=pf.b; gf.locked=pf.locked; gf.done=pf.done; if(pf.winner!==undefined) gf.winner=pf.winner; }
         });
@@ -999,7 +999,7 @@ function applyRemoteState(data){
     if(data.pools && data.fights){
       Object.values(POOLS).forEach(function(pool){
         if(!pool.fights) return;
-        pool.fights.forEach(function(pf){
+        pFights(pool).forEach(function(pf){
           var gf=FIGHTS.find(function(x){return x.id===pf.id;});
           if(gf){
             gf.a=pf.a; gf.b=pf.b;
@@ -1162,18 +1162,18 @@ function renderAppelTable(){
     var pool=POOLS[cat]; if(!pool) return;
     // Normaliser fighters en tableau (Firebase peut retourner un objet)
     if(pool.fighters && !Array.isArray(pool.fighters)) pool.fighters=Object.values(pool.fighters);
-    if(!pool.fighters||pool.fighters.length===0) return;
+    if(!pool.fighters||pFighters(pool).length===0) return;
     if(!PM[cat]) PM[cat]={};
-    pool.fighters.forEach(function(fi){if(PM[cat][fi.id]===undefined) PM[cat][fi.id]=null;});
+    pFighters(pool).forEach(function(fi){if(PM[cat][fi.id]===undefined) PM[cat][fi.id]=null;});
     var pm=PM[cat];
-    var allChk=pool.fighters.every(function(fi){return pm[fi.id]!==null;});
-    var allPres=pool.fighters.every(function(fi){return pm[fi.id]===true;});
+    var allChk=pFighters(pool).every(function(fi){return pm[fi.id]!==null;});
+    var allPres=pFighters(pool).every(function(fi){return pm[fi.id]===true;});
 
     h+="<div class='card' style='margin-bottom:16px'>";
     h+="<div style='font-family:var(--fh);font-size:1rem;letter-spacing:2px;margin-bottom:4px'>"+cat+"</div>";
     h+="<div style='font-family:var(--fm);font-size:.55rem;color:var(--muted);margin-bottom:12px'>"+getFmtLabel(pool.format)+" · ⏱ "+(pool.dur===180?"3 MIN":"4 MIN")+"</div>";
 
-    pool.fighters.forEach(function(fi){
+    pFighters(pool).forEach(function(fi){
       var s2=pm[fi.id];
       var cls=s2===true?"fcheck pres":s2===false?"fcheck abs":"fcheck";
       var ico=s2===true?"✔":s2===false?"✕":"?";
@@ -1194,9 +1194,9 @@ function renderAppelTable(){
   var allPoolsChecked=myPools.every(function(cat){
     var pool=POOLS[cat]; if(!pool) return true;
     if(pool.fighters && !Array.isArray(pool.fighters)) pool.fighters=Object.values(pool.fighters);
-    if(!pool.fighters||pool.fighters.length===0) return true;
+    if(!pool.fighters||pFighters(pool).length===0) return true;
     var pm=PM[cat]||{};
-    return pool.fighters.every(function(fi){return pm[fi.id]!==null;});
+    return pFighters(pool).every(function(fi){return pm[fi.id]!==null;});
   });
 
   var btnHtml="<div style='margin-bottom:16px'>";
@@ -1231,14 +1231,14 @@ function validerAppelTable(){
     // Normaliser fighters et fights (Firebase retourne des objets)
     if(pool.fighters && !Array.isArray(pool.fighters)) pool.fighters=Object.values(pool.fighters);
     if(pool.fights && !Array.isArray(pool.fights)) pool.fights=Object.values(pool.fights);
-    if(!pool.fighters||pool.fighters.length===0) return;
+    if(!pool.fighters||pFighters(pool).length===0) return;
     var pm=PM[cat]||{};
-    var presents=pool.fighters.filter(function(fi){return pm[fi.id]===true;});
+    var presents=pFighters(pool).filter(function(fi){return pm[fi.id]===true;});
     // Si tous absents → garder tous présents par défaut
     if(presents.length===0) presents=pool.fighters.slice();
     PD[cat]=true;
     var newFmt=getFormat(presents.length);
-    if(newFmt!==pool.format||presents.length<pool.fighters.length){
+    if(newFmt!==pool.format||presents.length<pFighters(pool).length){
       FIGHTS=FIGHTS.filter(function(f){return f.cat!==cat;});
       var nf=presents.length>=2?buildFights(presents,newFmt,cat,pool.dur,FIGHTS.length):[];
       var idMap={};
@@ -1258,8 +1258,8 @@ function validerAppelTable(){
       else toast("Format recalculé : "+getFmtLabel(newFmt),"ok");
     } else {
       // Pas de changement de format — s'assurer que FIGHTS contient bien les combats de cette poule
-      if(pool.fights && pool.fights.length>0){
-        pool.fights.forEach(function(pf){
+      if(pool.fights && pFights(pool).length>0){
+        pFights(pool).forEach(function(pf){
           if(!FIGHTS.find(function(f){return f.id===pf.id;})) FIGHTS.push(pf);
         });
       }
@@ -1486,12 +1486,28 @@ function renderCats(){
 // ATTRIBUTION POULE → TABLE
 
 // Retourne la poule actuellement active sur une table (pas terminée), ou null
+// Normalise pool.fights et pool.fighters en tableaux (Firebase retourne parfois des objets)
+function pFights(pool){
+  if(!pool) return [];
+  if(!pool.fights) return [];
+  if(!Array.isArray(pool.fights)) pool.fights=Object.values(pool.fights);
+  return pool.fights;
+}
+function pFighters(pool){
+  if(!pool) return [];
+  if(!pool.fighters) return [];
+  if(!Array.isArray(pool.fighters)) pool.fighters=Object.values(pool.fighters);
+  return pool.fighters;
+}
+
 function getActivePoolOnTable(tableId){
   var keys=Object.keys(POOL_TABLES);
   for(var i=0;i<keys.length;i++){
     if(POOL_TABLES[keys[i]]===tableId){
       var pool=POOLS[keys[i]];
-      if(pool&&!pool.fights.every(function(f){return f.done;})) return keys[i];
+      if(!pool) continue;
+      var fights=Array.isArray(pool.fights)?pool.fights:Object.values(pool.fights||{});
+      if(fights.length>0 && !fights.every(function(f){return f.done;})) return keys[i];
     }
   }
   return null;
@@ -1507,9 +1523,9 @@ function renderAssignSection(ac){
   catPools.forEach(function(cat){
     var pool=POOLS[cat];
     var assigned=POOL_TABLES[cat]||null;
-    var poolDone=pool.fights.length>0&&pool.fights.every(function(f){return f.done;});
-    var done=pool.fights.filter(function(f){return f.done;}).length;
-    var total=pool.fights.length;
+    var poolDone=pFights(pool).length>0&&pFights(pool).every(function(f){return f.done;});
+    var done=pFights(pool).filter(function(f){return f.done;}).length;
+    var total=pFights(pool).length;
     var pillCls=poolDone?"pill-done":assigned?"pill-assigned":"pill-unset";
     var pillTxt=poolDone?"🏁 TERMINÉE":assigned?"🪑 "+assigned.replace("T","TABLE "):"⚠ NON ATTRIBUÉE";
     h+="<div class=\"pool-assign-row\" id=\"par-"+encodePoolKey(cat)+"\">";
@@ -1539,7 +1555,7 @@ function attachAssignBtns(acId){
   var catPools=Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===acId;});
   catPools.forEach(function(cat){
     var pool=POOLS[cat];
-    var poolDone=pool.fights.length>0&&pool.fights.every(function(f){return f.done;});
+    var poolDone=pFights(pool).length>0&&pFights(pool).every(function(f){return f.done;});
     if(poolDone) return;
     var row=document.getElementById("tbtn-row-"+encodePoolKey(cat));
     if(!row) return;
@@ -2191,8 +2207,8 @@ function renderPoolsSummary(ac){
   var catPools=Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;});
   catPools.forEach(function(cat){
     var pool=POOLS[cat];
-    var done=pool.fights.filter(function(f){return f.done;}).length;
-    var total=pool.fights.length;
+    var done=pFights(pool).filter(function(f){return f.done;}).length;
+    var total=pFights(pool).length;
     var pct=total>0?Math.round(done/total*100):0;
     h+="<div style=\"margin-bottom:10px\">";
     h+="<div style=\"font-family:var(--fh);font-size:1rem;letter-spacing:2px;margin-bottom:4px\">"+cat+"</div>";
@@ -2489,7 +2505,7 @@ function doGenPoulesCat(acId, byPoids){
   // Mettre à jour srcA_/srcB_ dans pool.fights avec les nouveaux ids
   cats.forEach(function(cat){
     var pool=POOLS[cat];if(!pool||!pool.fights)return;
-    pool.fights.forEach(function(pf){
+    pFights(pool).forEach(function(pf){
       if(pf.srcA_!==undefined&&idMap[pf.srcA_]) pf.srcA_=idMap[pf.srcA_].id;
       if(pf.srcB_!==undefined&&idMap[pf.srcB_]) pf.srcB_=idMap[pf.srcB_].id;
     });
@@ -2507,8 +2523,8 @@ function doGenPoulesCat(acId, byPoids){
 // CLASSEMENT
 function computeStandings(pool){
   var sc={};
-  pool.fighters.forEach(function(fi){sc[fi.id]={nom:fi.nom,pre:fi.pre,v:0,d:0,pts:0};});
-  pool.fights.filter(function(f){return f.done&&f.winner;}).forEach(function(f){
+  pFighters(pool).forEach(function(fi){sc[fi.id]={nom:fi.nom,pre:fi.pre,v:0,d:0,pts:0};});
+  pFights(pool).filter(function(f){return f.done&&f.winner;}).forEach(function(f){
     var w=f[f.winner],l=f[f.winner==="a"?"b":"a"];
     if(sc[w.id]){sc[w.id].v++;sc[w.id].pts+=3;}
     if(sc[l.id]) sc[l.id].d++;
@@ -2607,7 +2623,7 @@ function renderResultats(){
     catPools.forEach(function(cat){
       var pool=POOLS[cat];
       var podium=computePodium(pool);
-      var catDone=pool.fights.every(function(f){return f.done;});
+      var catDone=pFights(pool).every(function(f){return f.done;});
       h+="<div class=\"card\" style=\"margin-bottom:10px\">";
       h+="<div style=\"font-family:var(--fh);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px\">"+cat+(catDone?" <span style=\"font-family:var(--fm);font-size:.55rem;color:var(--green)\">✔ TERMINÉ</span>":"")+"</div>";
       h+="<div style=\"font-family:var(--fm);font-size:.56rem;color:var(--muted);margin-bottom:8px\">"+getFmtLabel(pool.format)+"</div>";
@@ -2628,7 +2644,7 @@ function renderResultats(){
         h+="<div style=\"font-family:var(--fm);font-size:.6rem;color:var(--muted);text-align:center;padding:8px 0\">En attente des resultats...</div>";
       }
       h+="<table class=\"stbl\"><thead><tr><th class=\"tl\">COMBAT</th><th class=\"tl\">VAINQUEUR</th><th>ST</th></tr></thead><tbody>";
-      pool.fights.forEach(function(f){
+      pFights(pool).forEach(function(f){
         h+="<tr><td class=\"tl\" style=\"font-size:.8rem\">"+f.a.nom+" vs "+f.b.nom+"</td>";
         h+="<td class=\"tl\">"+(f.done&&f.winner?"<span class=\"ok\">"+f[f.winner].nom+"</span>":"<span class=\"mut\">—</span>")+"</td>";
         h+="<td>"+(f.done?"<span class=\"ok\">✔</span>":f.locked?"<span class=\"mut\">🔒</span>":"<span style=\"color:var(--red2)\">▶</span>")+"</td></tr>";
@@ -2695,15 +2711,15 @@ function renderList(){
     catPools.forEach(function(cat){
       var pool=POOLS[cat]; if(!pool) return;
       var assignedTo=POOL_TABLES[cat];
-      var poolDone=pool.fights.length>0&&pool.fights.every(function(f){return f.done;});
+      var poolDone=pFights(pool).length>0&&pFights(pool).every(function(f){return f.done;});
       // Poule terminée : ne pas l'afficher du tout
       if(poolDone) return;
       h+="<div class='pool-sec'>";
       h+="<div style='margin-bottom:8px'>";
       h+="<div style='font-family:var(--fh);font-size:1.1rem;letter-spacing:2px'>"+cat+"</div>";
       h+="<div style='font-family:var(--fm);font-size:.56rem;color:var(--muted);margin-top:2px'>"+getFmtLabel(pool.format)+" · ⏱ "+(pool.dur===180?"3 MIN":"4 MIN")+(assignedTo?" · 🪑 "+assignedTo.replace("T","Table "):"")+"</div></div>";
-      if((pool.format==="robin3"||pool.format==="nordique4")&&pool.fights.some(function(f){return f.done;})) h+=renderStandings(pool);
-      pool.fights.forEach(function(f,i){
+      if((pool.format==="robin3"||pool.format==="nordique4")&&pFights(pool).some(function(f){return f.done;})) h+=renderStandings(pool);
+      pFights(pool).forEach(function(f,i){
         var cls=f.done?"frow fdone":f.locked?"frow flocked":"frow";
         var btxt=f.done?"✔ TERMINÉ":f.locked?"🔒 EN ATTENTE":"▶ À ARBITRER";
         var bst=f.done?"color:var(--green)":f.locked?"color:var(--muted)":"color:var(--red2)";
@@ -2739,16 +2755,16 @@ function goFight(id){
 function renderAppel(cat){
   var pool=POOLS[cat]; if(!pool) return;
   if(!PM[cat]) PM[cat]={};
-  pool.fighters.forEach(function(fi){if(PM[cat][fi.id]===undefined) PM[cat][fi.id]=null;});
+  pFighters(pool).forEach(function(fi){if(PM[cat][fi.id]===undefined) PM[cat][fi.id]=null;});
   var pm=PM[cat],allChk=true,absents=[];
-  pool.fighters.forEach(function(fi){if(pm[fi.id]===null) allChk=false; if(pm[fi.id]===false) absents.push(fi);});
+  pFighters(pool).forEach(function(fi){if(pm[fi.id]===null) allChk=false; if(pm[fi.id]===false) absents.push(fi);});
   var sum=!allChk?"<span class=\"warn\">⚠ Appelez chaque combattant</span>":
     absents.length?"<span class=\"warn\">⚠ "+absents.length+" absent(s) — format recalcule</span>":
     "<span class=\"ok\">✔ Tous presents</span>";
   var h="<div style=\"background:linear-gradient(135deg,rgba(232,184,75,.12),rgba(232,184,75,.04));border:1px solid rgba(232,184,75,.3);border-left:4px solid var(--gold);border-radius:8px;padding:14px 16px;margin-bottom:16px\">";
   h+="<div style=\"font-family:var(--fh);font-size:1.3rem;letter-spacing:3px;color:var(--gold);margin-bottom:4px\">📋 APPEL — "+cat+"</div>";
   h+="<div style=\"font-family:var(--fm);font-size:.6rem;color:var(--muted);letter-spacing:2px\">"+getFmtLabel(pool.format)+"</div></div>";
-  pool.fighters.forEach(function(fi){
+  pFighters(pool).forEach(function(fi){
     var s=pm[fi.id];
     var cls=s===true?"fcheck pres":s===false?"fcheck abs":"fcheck";
     var ico=s===true?"✔":s===false?"✕":"?";
@@ -2780,10 +2796,10 @@ function togglePres(cat,fid){
 function resetAppel(cat){PM[cat]={};renderAppel(cat);}
 function validerAppel(cat){
   var pool=POOLS[cat],pm=PM[cat];
-  var presents=pool.fighters.filter(function(fi){return pm[fi.id]===true;});
+  var presents=pFighters(pool).filter(function(fi){return pm[fi.id]===true;});
   PD[cat]=true;
   var newFmt=getFormat(presents.length);
-  if(newFmt!==pool.format||presents.length<pool.fighters.length){
+  if(newFmt!==pool.format||presents.length<pFighters(pool).length){
     FIGHTS=FIGHTS.filter(function(f){return f.cat!==cat;});
     var nf=presents.length>=2?buildFights(presents,newFmt,cat,pool.dur,FIGHTS.length):[];
     nf.forEach(function(f){FIGHTS.push(f);});
@@ -2792,7 +2808,7 @@ function validerAppel(cat){
     if(presents.length<2) toast("⚠ Moins de 2 presents","warn");
     else toast("Format recalcule : "+getFmtLabel(newFmt),"ok");
   } else { toast("✅ Appel valide","ok"); }
-  var first=pool.fights.find(function(f){return !f.done&&!f.locked;});
+  var first=pFights(pool).find(function(f){return !f.done&&!f.locked;});
   if(first){cid=first.id;renderFight(first);showPage("pg-fight");}
   else goList();
 }
@@ -2924,7 +2940,7 @@ function validateResult(){
   // Mettre à jour aussi pool.fights (source de vérité pour renderSuivi)
   var pool=POOLS[f.cat];
   if(pool){
-    var pf=pool.fights.find(function(x){return x.id==cid;});
+    var pf=pFights(pool).find(function(x){return x.id==cid;});
     if(pf){pf.done=true;pf.winner=pendwin;}
   }
   applyWin(f); postFightLogic(f);
@@ -2953,11 +2969,11 @@ var _notifications = []; // {cat, pool, podium, time, vu}
 
 function checkPoolDone(cat){
   var pool=POOLS[cat]; if(!pool) return;
-  if(!pool.fights.length) return;
-  var allDone=pool.fights.every(function(f){return f.done;});
+  if(!pFights(pool).length) return;
+  var allDone=pFights(pool).every(function(f){return f.done;});
   if(!allDone) return;
   // Ne pas afficher le podium si un départage est encore en attente (locked=false, done=false)
-  var depPending=pool.fights.some(function(f){
+  var depPending=pFights(pool).some(function(f){
     return (f.type==="nordique-dep")&&!f.done&&!f.locked;
   });
   if(depPending) return;
@@ -3135,12 +3151,12 @@ function postFightLogic(f){
   var pool=POOLS[f.cat]; if(!pool) return;
   // ── Nordique4 : départage si égalité pour la 1ère place ──
   if(pool.format==="nordique4"){
-    var allMain=pool.fights.filter(function(x){return x.type==="nordique";});
-    var depFight=pool.fights.find(function(x){return x.type==="nordique-dep";});
+    var allMain=pFights(pool).filter(function(x){return x.type==="nordique";});
+    var depFight=pFights(pool).find(function(x){return x.type==="nordique-dep";});
     if(depFight&&!depFight.done&&allMain.every(function(x){return x.done;})){
       // Calculer classement
       var sc4={};
-      pool.fighters.forEach(function(fi){sc4[fi.id]={fi:fi,v:0};});
+      pFighters(pool).forEach(function(fi){sc4[fi.id]={fi:fi,v:0};});
       allMain.forEach(function(fi){
         if(!fi.done||!fi.winner) return;
         var wId=fi[fi.winner].id;
@@ -3274,7 +3290,7 @@ function getMyActiveFights(){
   var myPools=Object.keys(POOL_TABLES).filter(function(k){
     if(POOL_TABLES[k]!==role) return false;
     var pool=POOLS[k];
-    return pool && !pool.fights.every(function(f){return f.done;});
+    return pool && !pFights(pool).every(function(f){return f.done;});
   });
   if(myPools.length===0) return [];
   return FIGHTS.filter(function(f){return myPools.indexOf(f.cat)!==-1;});
@@ -3950,7 +3966,7 @@ function updateTicker(){
   ['T1','T2','T3','T4'].forEach(function(t){
     Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===t;}).forEach(function(pk){
       var pool=POOLS[pk]; if(!pool) return;
-      var act=pool.fights.find(function(f){return !f.done&&!f.locked;});
+      var act=pFights(pool).find(function(f){return !f.done&&!f.locked;});
       if(act) items.push('⚔ '+t.replace('T','TABLE ')+' · '+act.a.nom+' vs '+act.b.nom+' · '+pk);
     });
   });
@@ -4086,14 +4102,14 @@ function renderSuivi(){
     Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===t;}).forEach(function(pk){
       var pool=POOLS[pk];if(!pool)return;
       if(_suiviCat!=='all'&&pk.toLowerCase().indexOf(_suiviCat)===-1)return;
-      if(q&&!pool.fights.some(function(f){return(f.a.nom+' '+f.a.pre).toLowerCase().indexOf(q)!==-1||(f.b.nom+' '+f.b.pre).toLowerCase().indexOf(q)!==-1;}))return;
+      if(q&&!pFights(pool).some(function(f){return(f.a.nom+' '+f.a.pre).toLowerCase().indexOf(q)!==-1||(f.b.nom+' '+f.b.pre).toLowerCase().indexOf(q)!==-1;}))return;
       any=true;
-      var done=pool.fights.filter(function(f){return f.done;}).length, tot=pool.fights.length;
+      var done=pFights(pool).filter(function(f){return f.done;}).length, tot=pFights(pool).length;
       var pct=tot?Math.round(done/tot*100):0, fin=done===tot&&tot>0;
-      var act=pool.fights.find(function(f){return !f.done&&!f.locked;});
+      var act=pFights(pool).find(function(f){return !f.done&&!f.locked;});
       var catObj=AGE_CATS.find(function(a){return pk.toLowerCase().indexOf(a.id)!==-1;});
       var fighters={};
-      pool.fights.forEach(function(f){fighters[f.a.id]=f.a;fighters[f.b.id]=f.b;});
+      pFights(pool).forEach(function(f){fighters[f.a.id]=f.a;fighters[f.b.id]=f.b;});
       // Header carte
       h+="<div class='card' style='margin-bottom:16px;border-top:3px solid "+(fin?'var(--green)':'var(--red2)')+"'>";
       h+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px'><div>";
@@ -4140,7 +4156,7 @@ function renderSuiviResultats(){
     catPools.forEach(function(cat){
       var pool=POOLS[cat];
       var podium=computePodium(pool);
-      var catDone=pool.fights.every(function(f){return f.done;});
+      var catDone=pFights(pool).every(function(f){return f.done;});
       h+="<div class='card' style='margin-bottom:12px;border-top:3px solid "+(catDone?'var(--green)':'var(--border)')+"'>";
       h+="<div style='font-family:var(--fh);font-size:.85rem;letter-spacing:2px;margin-bottom:4px'>"+cat;
       if(catDone) h+=" <span style='font-family:var(--fm);font-size:.5rem;color:var(--green)'>✔ TERMINÉ</span>";
