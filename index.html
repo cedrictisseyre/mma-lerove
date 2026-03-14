@@ -916,6 +916,18 @@ function fbInit(){
       var val=snap.val(); if(!val) return;
       _pendingData.savedAt=val;
     });
+    // Listener appel requis — déclenche goAppelTable si l'admin attribue une nouvelle poule
+    _fbRef.child('appelRequired').on('value',function(snap){
+      var data=snap.val();
+      if(!data||!role||role==='admin') return;
+      var sig=data[role];
+      if(!sig||!sig.ts) return;
+      // Signal récent (< 30 secondes) et pas encore traité
+      if(Date.now()-sig.ts < 30000 && !_appelFait[role]){
+        closePodiumModal();
+        goAppelTable();
+      }
+    });
     // Sync chrono live — actif dès le démarrage pour tous les appareils
     _fbRef.child('liveChrono').on('value',function(snap){
       window._livChronoData=snap.val();
@@ -1560,7 +1572,10 @@ function assignTable(cat,t){
     POOL_TABLES[cat]=t;
     _appelFait[t]=false; // nouvelle poule → l'appel doit être refait
     saveState();
+    // Écrire un signal Firebase pour notifier la table immédiatement
+    if(_fbRef){ try{ _fbRef.child('appelRequired').child(t).set({cat:cat,ts:Date.now()}); }catch(e){} }
     toast("✔ "+cat+" → "+t.replace("T","Table "),"ok");
+    if(role===t){ closePodiumModal(); goAppelTable(); }
   }
   renderCats();
   // Rouvrir la bonne carte
