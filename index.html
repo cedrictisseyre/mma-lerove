@@ -1016,14 +1016,14 @@ function applyRemoteState(data){
         var pgAppelT=document.getElementById('pg-appel-table');
         var onAppelTable=pgAppelT&&pgAppelT.style.display!=='none';
         var onFight=document.getElementById('pg-fight')&&document.getElementById('pg-fight').style.display!=='none';
-        if(!onAppelTable&&!onFight){
-          // Si on était sur "EN ATTENTE DES POULES" et que Firebase vient de charger
-          // → repasser par switchToTable pour déclencher la feuille d'appel si nécessaire
-          var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
-          var hasNewPool=myPools.some(function(cat){return !_appelFait[cat];});
-          if(pgList&&pgList.style.display!=='none'&&myPools.length>0&&hasNewPool){
-            goAppelTable();
-          } else if(pgList&&pgList.style.display!=='none'){
+        // Vérifier si une nouvelle poule non appelée vient d'être attribuée
+        var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
+        var hasNewPool=myPools.some(function(cat){return !_appelFait[cat];});
+        if(hasNewPool&&myPools.length>0){
+          // Nouvelle poule détectée — déclencher l'appel quelle que soit la page courante
+          goAppelTable();
+        } else if(!onAppelTable&&!onFight){
+          if(pgList&&pgList.style.display!=='none'){
             renderList();
           }
         }
