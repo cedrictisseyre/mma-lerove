@@ -1018,15 +1018,8 @@ function applyRemoteState(data){
         var onFight=document.getElementById('pg-fight')&&document.getElementById('pg-fight').style.display!=='none';
         // Vérifier si une nouvelle poule non appelée vient d'être attribuée
         var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
-        // Nouvelle poule = assignée à cette table, non terminée, ET pas encore appelée
-        var hasNewPool=myPools.some(function(cat){
-          if(_appelFait[cat]) return false; // déjà appelée
-          var pool=POOLS[cat];
-          if(!pool) return false; // pas encore chargée
-          if(pool.fights.every(function(f){return f.done;})) return false; // déjà terminée
-          return true; // poule active non appelée
-        });
-        if(hasNewPool){
+        // Si une nouvelle poule vient d'être attribuée : réinitialiser l'appel
+        if(!_appelFait[role] && myPools.length>0){
           closePodiumModal();
           goAppelTable();
         } else if(!onAppelTable&&!onFight){
@@ -1101,19 +1094,6 @@ function doLogin(){
 
 
 // SWITCH TABLE / RETOUR ADMIN
-function _poolTerminee(cat){
-  try {
-    var pool=POOLS[cat];
-    if(!pool) return false;
-    var fights=Array.isArray(pool.fights)?pool.fights:Object.values(pool.fights||{});
-    return fights.length>0 && fights.every(function(f){return f.done;});
-  } catch(e){ return false; }
-}
-function _dejaAppeleTout(pools){
-  return pools.every(function(cat){
-    return !!_appelFait[cat] || _poolTerminee(cat);
-  });
-}
 function switchToTable(t,skipAppel){
   role=t;
   document.getElementById("admintabs").style.display="none";
@@ -1123,7 +1103,7 @@ function switchToTable(t,skipAppel){
   if(myPools.length===0){
     showPage("pg-list");
     document.getElementById("list-content").innerHTML="<div style=\"font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px;line-height:2\">⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
-  } else if(skipAppel || _dejaAppeleTout(myPools)){
+  } else if(skipAppel || _appelFait[t]){
     goList();
   } else {
     goAppelTable();
@@ -1244,8 +1224,7 @@ function validerAppelTable(){
       else toast("Format recalculé : "+getFmtLabel(newFmt),"ok");
     }
   });
-  // Marquer chaque poule comme appelée (pas la table entière)
-  myPools.forEach(function(cat){ _appelFait[cat]=true; });
+  _appelFait[role]=true;
   saveState();
   goList();
   toast("✅ Appel validé — bonne compétition !","ok");
@@ -1560,6 +1539,7 @@ function assignTable(cat,t){
     toast("Attribution retirée — "+cat,"warn");
   } else {
     POOL_TABLES[cat]=t;
+    _appelFait[t]=false; // nouvelle poule → l'appel doit être refait
     saveState();
     toast("✔ "+cat+" → "+t.replace("T","Table "),"ok");
   }
