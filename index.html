@@ -2624,6 +2624,9 @@ function renderList(){
     catPools.forEach(function(cat){
       var pool=POOLS[cat]; if(!pool) return;
       var assignedTo=POOL_TABLES[cat];
+      var poolDone=pool.fights.length>0&&pool.fights.every(function(f){return f.done;});
+      // Poule terminée : ne pas l'afficher du tout
+      if(poolDone) return;
       h+="<div class='pool-sec'>";
       h+="<div style='margin-bottom:8px'>";
       h+="<div style='font-family:var(--fh);font-size:1.1rem;letter-spacing:2px'>"+cat+"</div>";
