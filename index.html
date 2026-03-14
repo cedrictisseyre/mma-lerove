@@ -544,15 +544,15 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
         <div style="font-family:var(--fh);font-size:1rem;letter-spacing:3px">📺 SUIVI EN DIRECT</div>
         <div class="lpill" style="margin-left:auto"><div class="ldot"></div>LIVE</div>
       </div>
-      <input id="suivi-search" type="text" placeholder="🔍 Rechercher un combattant..." oninput="renderSuivi()" style="width:100%;background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:#fff;font-family:var(--fm);font-size:.8rem;box-sizing:border-box;margin-bottom:8px">
-      <div style="display:flex;gap:5px;margin-bottom:6px">
+      <input id="suivi-search" type="text" placeholder="🔍 Rechercher un combattant..." oninput="if(_suiviTab!=='res') renderSuivi()" style="width:100%;background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:#fff;font-family:var(--fm);font-size:.8rem;box-sizing:border-box;margin-bottom:8px">
+      <div style="display:flex;gap:5px;margin-bottom:5px">
         <button id="stab-all" onclick="suiviTab('all')" style="flex:1;background:var(--red2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">TOUS</button>
         <button id="stab-T1"  onclick="suiviTab('T1')"  style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">TABLE 1</button>
         <button id="stab-T2"  onclick="suiviTab('T2')"  style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">TABLE 2</button>
         <button id="stab-T3"  onclick="suiviTab('T3')"  style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">TABLE 3</button>
         <button id="stab-T4"  onclick="suiviTab('T4')"  style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">TABLE 4</button>
-        <button id="stab-res" onclick="suiviTab('res')" style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:1px;padding:7px">🏆</button>
       </div>
+      <button id="stab-res" onclick="suiviTab('res')" style="width:100%;background:var(--dark3);border:1px solid var(--gold);border-radius:6px;color:var(--gold);cursor:pointer;font-family:var(--fh);font-size:.7rem;letter-spacing:2px;padding:9px;margin-bottom:6px">🏆 RÉSULTATS &amp; PODIUMS</button>
       <div id="suivi-cat-filters" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
   </div>
@@ -924,7 +924,9 @@ function fbInit(){
     _fbRef.child('liveStatus').on('value',function(snap){
       window._liveStatus=snap.val();
       var ps=document.getElementById('pg-suivi');
-      if(ps&&ps.style.display!=='none') renderSuivi();
+      if(ps&&ps.style.display!=='none'){
+        if(_suiviTab==='res') renderSuiviResultats(); else renderSuivi();
+      }
     });
     _fbListening=true;
   }catch(e){console.warn('fbInit:',e);}
@@ -1024,7 +1026,9 @@ function applyRemoteState(data){
       updatePublicStats();
       // Refresh suivi parents si ouvert
       var ps=document.getElementById('pg-suivi');
-      if(ps&&ps.style.display!=='none') renderSuivi();
+      if(ps&&ps.style.display!=='none'){
+        if(_suiviTab==='res') renderSuiviResultats(); else renderSuivi();
+      }
     }
   } catch(e){ console.warn("applyRemoteState:", e); }
 }
