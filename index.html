@@ -3221,11 +3221,17 @@ function undoResult(){
 // Retourne uniquement les combats des poules attribuées à la table active
 function getMyFights(){
   if(!role||role==='admin') return FIGHTS;
-  // Exclure les poules terminées — seule la poule active est concernée
+  var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
+  if(myPools.length===0) return FIGHTS;
+  return FIGHTS.filter(function(f){return myPools.indexOf(f.cat)!==-1;});
+}
+
+// Combats de la table active uniquement (poules non terminées)
+function getMyActiveFights(){
+  if(!role||role==='admin') return FIGHTS;
   var myPools=Object.keys(POOL_TABLES).filter(function(k){
     if(POOL_TABLES[k]!==role) return false;
     var pool=POOLS[k];
-    // Garder seulement si la poule n'est pas terminée
     return pool && !pool.fights.every(function(f){return f.done;});
   });
   if(myPools.length===0) return [];
@@ -3234,7 +3240,7 @@ function getMyFights(){
 
 function renderNext(){
   var el=document.getElementById("next-wrap");
-  var next=getMyFights().find(function(f){return !f.done&&!f.locked;});
+  var next=getMyActiveFights().find(function(f){return !f.done&&!f.locked;});
   if(!next){
     // Combats de cette poule terminés → page d'attente
     setTimeout(function(){showAttente();},1500);
@@ -3269,7 +3275,7 @@ function showAttente(){
 }
 function renderNRem(currentId){
   var el=document.getElementById("nrem-wrap"); if(!el) return;
-  var next=getMyFights().find(function(f){return !f.done&&!f.locked&&f.id!==currentId;});
+  var next=getMyActiveFights().find(function(f){return !f.done&&!f.locked&&f.id!==currentId;});
   if(!next){el.innerHTML="";return;}
   el.innerHTML="<div class=\"nrem\"><div style=\"font-family:var(--fh);font-size:.8rem;letter-spacing:3px;color:var(--gold);margin-bottom:8px\">⚡ PROCHAIN COMBAT</div>"+
     "<div style=\"display:flex;align-items:center;gap:8px\">"+
