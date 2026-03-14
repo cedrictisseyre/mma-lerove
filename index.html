@@ -3192,8 +3192,14 @@ function undoResult(){
 // Retourne uniquement les combats des poules attribuées à la table active
 function getMyFights(){
   if(!role||role==='admin') return FIGHTS;
-  var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
-  if(myPools.length===0) return FIGHTS;
+  // Exclure les poules terminées — seule la poule active est concernée
+  var myPools=Object.keys(POOL_TABLES).filter(function(k){
+    if(POOL_TABLES[k]!==role) return false;
+    var pool=POOLS[k];
+    // Garder seulement si la poule n'est pas terminée
+    return pool && !pool.fights.every(function(f){return f.done;});
+  });
+  if(myPools.length===0) return [];
   return FIGHTS.filter(function(f){return myPools.indexOf(f.cat)!==-1;});
 }
 
