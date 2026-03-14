@@ -1225,26 +1225,29 @@ function togglePresTable(cat,fid){
 }
 
 function validerAppelTable(){
-  // Valider l'appel pour toutes les poules de cette table
   var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
   myPools.forEach(function(cat){
     var pool=POOLS[cat]; if(!pool) return;
+    // Normaliser fighters et fights (Firebase retourne des objets)
     if(pool.fighters && !Array.isArray(pool.fighters)) pool.fighters=Object.values(pool.fighters);
+    if(pool.fights && !Array.isArray(pool.fights)) pool.fights=Object.values(pool.fights);
     if(!pool.fighters||pool.fighters.length===0) return;
     var pm=PM[cat]||{};
     var presents=pool.fighters.filter(function(fi){return pm[fi.id]===true;});
+    // Si tous absents → garder tous présents par défaut
+    if(presents.length===0) presents=pool.fighters.slice();
     PD[cat]=true;
     var newFmt=getFormat(presents.length);
     if(newFmt!==pool.format||presents.length<pool.fighters.length){
       FIGHTS=FIGHTS.filter(function(f){return f.cat!==cat;});
       var nf=presents.length>=2?buildFights(presents,newFmt,cat,pool.dur,FIGHTS.length):[];
-      // Mapping ids après buildFights
       var idMap={};
       FIGHTS.forEach(function(f){idMap[f.id]=f;});
       nf.forEach(function(f){FIGHTS.push(f);});
       FIGHTS.forEach(function(f,i){f.id=i;});
       myPools.forEach(function(c2){
         var p2=POOLS[c2];if(!p2||!p2.fights)return;
+        if(!Array.isArray(p2.fights)) p2.fights=Object.values(p2.fights);
         p2.fights.forEach(function(pf){
           if(pf.srcA_!==undefined&&idMap[pf.srcA_]) pf.srcA_=idMap[pf.srcA_].id;
           if(pf.srcB_!==undefined&&idMap[pf.srcB_]) pf.srcB_=idMap[pf.srcB_].id;
@@ -1253,6 +1256,13 @@ function validerAppelTable(){
       pool.fights=nf; pool.format=newFmt; pool.fighters=presents;
       if(presents.length<2) toast("⚠ Moins de 2 présents — poule annulée","warn");
       else toast("Format recalculé : "+getFmtLabel(newFmt),"ok");
+    } else {
+      // Pas de changement de format — s'assurer que FIGHTS contient bien les combats de cette poule
+      if(pool.fights && pool.fights.length>0){
+        pool.fights.forEach(function(pf){
+          if(!FIGHTS.find(function(f){return f.id===pf.id;})) FIGHTS.push(pf);
+        });
+      }
     }
   });
   _appelFait[role]=true;
