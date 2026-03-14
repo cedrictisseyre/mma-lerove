@@ -680,7 +680,7 @@ var POOLS = {}, FIGHTS = [];
 var POOL_TABLES = {}; // cat -> 'T1'|'T2'|'T3'|'T4'|null
 var PM = {}, PD = {};
 var role = null;
-var _appelFait = (function(){try{return JSON.parse(localStorage.getItem('mma_appel_fait')||'{}');}catch(e){return {};}})();
+var _appelFait = {}; // remis à zéro à chaque session — l'appel doit être refait à chaque connexion
 var cid = null, tiv = null, tsecs = 0, trun = false, twarn = false, pendwin = null;
 
 
@@ -1195,7 +1195,6 @@ function validerAppelTable(){
     }
   });
   _appelFait[role]=true;
-  try{localStorage.setItem('mma_appel_fait',JSON.stringify(_appelFait));}catch(e){}
   saveState();
   goList();
   toast("✅ Appel validé — bonne compétition !","ok");
