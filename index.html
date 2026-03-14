@@ -1102,6 +1102,19 @@ function doLogin(){
 
 
 // SWITCH TABLE / RETOUR ADMIN
+function _poolTerminee(cat){
+  try {
+    var pool=POOLS[cat];
+    if(!pool) return false;
+    var fights=Array.isArray(pool.fights)?pool.fights:Object.values(pool.fights||{});
+    return fights.length>0 && fights.every(function(f){return f.done;});
+  } catch(e){ return false; }
+}
+function _dejaAppeleTout(pools){
+  return pools.every(function(cat){
+    return !!_appelFait[cat] || _poolTerminee(cat);
+  });
+}
 function switchToTable(t,skipAppel){
   role=t;
   document.getElementById("admintabs").style.display="none";
@@ -1111,11 +1124,7 @@ function switchToTable(t,skipAppel){
   if(myPools.length===0){
     showPage("pg-list");
     document.getElementById("list-content").innerHTML="<div style=\"font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px;line-height:2\">⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
-  } else if(skipAppel || myPools.every(function(cat){
-    if(_appelFait[cat]) return true;
-    var pool=POOLS[cat];
-    return pool && pool.fights && pool.fights.length>0 && pool.fights.every(function(f){return f.done;});
-  })){
+  } else if(skipAppel || _dejaAppeleTout(myPools)){
     goList();
   } else {
     goAppelTable();
