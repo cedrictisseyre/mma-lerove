@@ -3691,12 +3691,32 @@ function confirmImport(){
   var added = 0;
   _csvParsed.forEach(function(cb){
     // Éviter les doublons (même nom+prénom+club)
-    var exists = COMBATTANTS.find(function(x){return x.nom===cb.nom&&x.pre===cb.pre&&x.club===cb.club;});
-    if(!exists){ COMBATTANTS.push(cb); added++; }
+    var exists = _inscriptions.find(function(x){return x.nom===cb.nom&&x.pre===cb.pre&&x.club===cb.club;});
+    if(!exists){
+      var ac = getAgeCat(cb.age);
+      // Pousser dans _inscriptions (même source que ajout manuel et formulaire public)
+      // → saveInscriptions() synchronise Firebase → parents voient immédiatement
+      _inscriptions.push({
+        id: cb.id,
+        nom: cb.nom,
+        pre: cb.pre,
+        age: cb.age,
+        poids: cb.pdsD,
+        g: cb.g,
+        club: cb.club,
+        tel: '',
+        email: '',
+        cat: ac ? ac.lbl : 'Hors catégorie',
+        date: new Date().toLocaleDateString('fr-FR'),
+        statut: 'admin',
+        photo: null
+      });
+      added++;
+    }
   });
   closeModal();
   toast("✔ "+added+" combattant(s) importé(s)","ok");
-  saveState();
+  saveInscriptions(); // Sync Firebase inscriptions → visible côté parents
   renderInscriptions();
 }
 
