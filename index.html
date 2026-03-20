@@ -2506,19 +2506,26 @@ function genPoulesCat(acId){
     byPoids[cat].push(cb);
   });
 
+  // Séparer les catégories avec 1 seul combattant (solitaires) des autres
   var solitaires=[];
+  var byPoidsValides={};
   Object.keys(byPoids).forEach(function(cat){
-    if(byPoids[cat].length===1) solitaires.push({cat:cat,fighter:byPoids[cat][0]});
+    if(byPoids[cat].length===1){
+      solitaires.push({cat:cat,fighter:byPoids[cat][0]});
+    } else {
+      byPoidsValides[cat]=byPoids[cat];
+    }
   });
 
   if(solitaires.length>0){
-
+    // Proposer à l'admin de gérer les solitaires
+    // Les catégories valides (2+ combattants) seront générées après
     showModalSolitaires(acId, byPoids, solitaires);
     return;
   }
 
   // Aucun solitaire : générer directement
-  doGenPoulesCat(acId, byPoids);
+  doGenPoulesCat(acId, byPoidsValides);
 }
 
 function doGenPoulesCat(acId, byPoids){
@@ -2528,7 +2535,8 @@ function doGenPoulesCat(acId, byPoids){
   var newFights=[];
   cats.forEach(function(cat){
     var fs=byPoids[cat];
-    if(fs.length===0) return; // catégorie annulée
+    if(!fs||fs.length===0) return; // catégorie annulée
+    if(fs.length===1) return; // solitaire — ignorer silencieusement
     var dur=getDur(fs[0].age);
     var fmt=getFormat(fs.length);
     var fights=buildFights(fs,fmt,cat,dur,FIGHTS.length+newFights.length);
