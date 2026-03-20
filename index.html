@@ -1019,14 +1019,16 @@ function applyRemoteState(data){
         var onFight=document.getElementById('pg-fight')&&document.getElementById('pg-fight').style.display!=='none';
         // Vérifier si une nouvelle poule non appelée vient d'être attribuée
         var myPools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===role;});
-        if(!_appelFait[role] && myPools.length>0){
+        // Attribution supprimée → page vide immédiatement quelle que soit la page
+        if(myPools.length===0){
+          killTimer();
+          closePodiumModal();
+          showPage('pg-list');
+          document.getElementById('list-content').innerHTML="<div style='text-align:center;padding:40px;font-family:var(--fm);font-size:.65rem;color:var(--muted);line-height:2'>⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
+        } else if(!_appelFait[role]){
           // Nouvelle poule attribuée
           closePodiumModal();
           goAppelTable();
-        } else if(myPools.length===0){
-          // Attribution supprimée → afficher attente
-          showPage('pg-list');
-          document.getElementById('list-content').innerHTML="<div style='text-align:center;padding:40px;font-family:var(--fm);font-size:.65rem;color:var(--muted);line-height:2'>⏳ EN ATTENTE DES POULES<br>Contactez l'administration</div>";
         } else if(!onAppelTable&&!onFight){
           if(pgList&&pgList.style.display!=='none'){
             renderList();
