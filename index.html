@@ -1383,7 +1383,13 @@ function renderCats(){
   var h="";
   AGE_CATS.forEach(function(ac){
     var fighters=getFighters(ac.id);
-    var info=statutLabel(ac.statut);
+    // Corriger le statut si des poules existent mais ac.statut n'est pas à jour
+    var catPoolsExistBadge=Object.keys(POOLS).some(function(k){return getAgeCatFromCat(k)===ac.id;});
+    var allPoolsDone=catPoolsExistBadge&&Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;}).every(function(k){return pFights(POOLS[k]).every(function(f){return f.done;});});
+    var statutEffectif=ac.statut;
+    if(catPoolsExistBadge&&ac.statut!=='combats'&&ac.statut!=='termine') statutEffectif='combats';
+    if(allPoolsDone&&ac.statut!=='termine') statutEffectif='termine';
+    var info=statutLabel(statutEffectif);
     var present=fighters.filter(function(f){return isPresent(f);}).length;
     var absent=fighters.filter(function(f){return f.present===false;}).length;
     var pesees=fighters.filter(function(f){return isPresent(f)&&f.pdsP!==null;}).length;
@@ -1392,15 +1398,15 @@ function renderCats(){
 
     // Timeline steps
     var steps=["attente","pesee","pret","combats","termine"];
-    var si=steps.indexOf(ac.statut);
+    var si=steps.indexOf(statutEffectif);
 
     h+="<div class=\"cat-card\" id=\"cc-"+ac.id+"\">";
     h+="<div class=\"cat-hdr\" onclick=\"toggleCat('"+ac.id+"')\">";
     h+="<div style=\"flex:1;min-width:0\">";
     h+="<div style=\"font-family:var(--fh);font-size:1.25rem;letter-spacing:2px;line-height:1\">"+ac.lbl+" <span style=\"font-family:var(--fb);font-size:.85rem;color:var(--muted);font-weight:400\">"+ac.a1+"-"+ac.a2+" ans</span></div>";
     h+="<div style=\"font-family:var(--fm);font-size:.55rem;color:var(--muted);margin-top:3px\">"+fighters.length+" inscrit(s)";
-    if(ac.statut!=="attente") h+=" · "+present+" présent(s)";
-    if(ac.statut==="combats"||ac.statut==="termine") h+=" · "+doneFights+"/"+totalFights+" combats";
+    if(statutEffectif!=="attente") h+=" · "+present+" présent(s)";
+    if(statutEffectif==="combats"||statutEffectif==="termine") h+=" · "+doneFights+"/"+totalFights+" combats";
     h+="</div></div>";
     h+="<span class=\"cat-badge "+info[0]+"\">"+info[1]+"</span>";
     h+="<span class=\"cat-chevron\" style=\"color:var(--muted);font-size:1.1rem;margin-left:4px;display:inline-block;transition:transform .2s\">›</span>";
@@ -1420,7 +1426,8 @@ function renderCats(){
     h+="</div>";
 
     // Contenu selon statut
-    if(ac.statut==="attente"&&!catPoolsExist){
+    var _catHasPools=Object.keys(POOLS).some(function(k){return getAgeCatFromCat(k)===ac.id;});
+    if(statutEffectif==="attente"&&!_catHasPools){
       h+="<div style=\"font-family:var(--fm);font-size:.6rem;color:var(--muted);margin-bottom:14px;line-height:1.8\">"+fighters.length+" combattant(s) inscrits dans cette catégorie d'âge.<br>Ouvrez la pesée quand vous êtes prêt à accueillir cette catégorie.</div>";
       // Liste des combattants
       if(fighters.length>0){
@@ -1457,12 +1464,12 @@ function renderCats(){
       h+="</div>";
     }
 
-    if(ac.statut==="pesee"||ac.statut==="pret"){
+    if(statutEffectif==="pesee"||statutEffectif==="pret"){
       h+="<div id='par-"+ac.id+"'></div>";
       h+="<div id='gen-sec-"+ac.id+"'></div>";
     }
 
-    if(ac.statut==="combats"||ac.statut==="termine"){
+    if(statutEffectif==="combats"||statutEffectif==="termine"){
       h+="<div id='gen-sec-"+ac.id+"'></div>";
     }
 
@@ -1484,10 +1491,10 @@ function renderCats(){
   });
 
   AGE_CATS.forEach(function(ac){
-    if(ac.statut==="pesee"||ac.statut==="pret"){
+    if(statutEffectif==="pesee"||statutEffectif==="pret"){
       renderPeseeBody(ac);
       renderGenSection(ac);
-    } else if(ac.statut==="combats"||ac.statut==="termine"){
+    } else if(statutEffectif==="combats"||statutEffectif==="termine"){
       renderGenSection(ac);
     }
     // attachAssignBtns est appelé à la fin de renderGenSection — pas besoin ici
