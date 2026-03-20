@@ -1387,8 +1387,9 @@ function renderCats(){
     var catPoolsExistBadge=Object.keys(POOLS).some(function(k){return getAgeCatFromCat(k)===ac.id;});
     var allPoolsDone=catPoolsExistBadge&&Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;}).every(function(k){return pFights(POOLS[k]).every(function(f){return f.done;});});
     var statutEffectif=ac.statut;
-    if(catPoolsExistBadge&&ac.statut!=='combats'&&ac.statut!=='termine') statutEffectif='combats';
-    if(allPoolsDone&&ac.statut!=='termine') statutEffectif='termine';
+    // N'écraser que si le statut est "attente" (pas pesée/pret en cours)
+    if(catPoolsExistBadge&&ac.statut==='attente') statutEffectif='combats';
+    if(allPoolsDone) statutEffectif='termine';
     var info=statutLabel(statutEffectif);
     var present=fighters.filter(function(f){return isPresent(f);}).length;
     var absent=fighters.filter(function(f){return f.present===false;}).length;
@@ -1495,8 +1496,8 @@ function renderCats(){
     var catHasP=Object.keys(POOLS).some(function(k){return getAgeCatFromCat(k)===ac.id;});
     var allDoneP=catHasP&&Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;}).every(function(k){return pFights(POOLS[k]).every(function(f){return f.done;});});
     var sEff=ac.statut;
-    if(catHasP&&sEff!=='combats'&&sEff!=='termine') sEff='combats';
-    if(allDoneP&&sEff!=='termine') sEff='termine';
+    if(catHasP&&sEff==='attente') sEff='combats';
+    if(allDoneP) sEff='termine';
     if(sEff==="pesee"||sEff==="pret"){
       renderPeseeBody(ac);
       renderGenSection(ac);
