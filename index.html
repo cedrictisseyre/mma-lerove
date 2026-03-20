@@ -2267,10 +2267,11 @@ function setPresence(cid2,acId,val){
     c.present=val;
     if(!val){c.pdsP=null;c.cat=null;}
     else if(val===true&&c.pdsP===null){
-
       var ac2=getAgeCat(c.age);
       c.pdsP=c.pdsD;
-      c.cat=ac2?getCatPoids(ac2,c.pdsD):"?";
+      // Stocker avec suffixe (M)/(F) pour que genPoulesCat regroupe correctement
+      var genre2=c.g==="F"?"F":"M";
+      c.cat=ac2?(getCatPoids(ac2,c.pdsD)+" ("+genre2+")"):"?";
     }
   }
   if(val===true) toast(c.nom+" "+c.pre+" — Présent · "+c.pdsD+" kg","ok");
