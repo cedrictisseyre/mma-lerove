@@ -1152,7 +1152,14 @@ function renderAppelTable(){
     return fights.length>0 && !fights.every(function(f){return f.done;});
   });
   if(myPools.length===0){
-    el.innerHTML="<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px'>Aucune poule attribuée à cette table.</div>";
+    // Vérifier si une poule est attribuée mais pas encore chargée depuis Firebase
+    var anyAssigned=Object.keys(POOL_TABLES).some(function(k){return POOL_TABLES[k]===role;});
+    if(anyAssigned){
+      el.innerHTML="<div style='text-align:center;padding:40px'><div style='font-size:2rem'>⏳</div><div style='font-family:var(--fh);font-size:.9rem;letter-spacing:2px;color:var(--gold);margin-top:12px'>CHARGEMENT...</div></div>";
+      setTimeout(function(){renderAppelTable();},800);
+    } else {
+      el.innerHTML="<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:40px'>Aucune poule attribuée à cette table.</div>";
+    }
     return;
   }
   var h="";
@@ -1621,6 +1628,7 @@ function assignTable(cat,t){
 
 var _modalState = {};
 var _catOpen = {}; // mémorise l'état ouvert/fermé de chaque catégorie admin
+var _resOpen = {}; // mémorise l'état accordion des catégories dans résultats
 
 function showModalSolitaires(acId, byPoids, solitaires){
   _modalState[acId]={byPoids:byPoids, decisions:{}, currentIdx:0, solitaires:solitaires};
@@ -1903,7 +1911,12 @@ function renderLive(){
 
   // Construire état de chaque table
   var tableData=["T1","T2","T3","T4"].map(function(t){
-    var pools=Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===t;});
+    var pools=Object.keys(POOL_TABLES).filter(function(k){
+      if(POOL_TABLES[k]!==t) return false;
+      var pool=POOLS[k]; if(!pool) return true;
+      var f=pFights(pool);
+      return f.length===0||!f.every(function(x){return x.done;});
+    });
     var fights=FIGHTS.filter(function(f){return pools.indexOf(f.cat)!==-1;});
     var done=fights.filter(function(f){return f.done;}).length;
     var current=fights.find(function(f){return !f.done&&!f.locked;});
@@ -2287,7 +2300,9 @@ function setCatPoids(cid2,acId,pLimit){
   var fullCat=ac2.lbl+" "+(pLimit===999?"+"+ac2.poids[pi-1]:"-"+pLimit)+"kg";
   var catDeclaree=getCatPoids(ac2,cb.pdsD);
   cb.cat=fullCat;
-  cb.pdsP=pLimit===999?ac2.poids[pi-1]+0.1:pLimit-0.1; // valeur fictive dans la bonne tranche
+  // Mettre à jour pdsD avec le poids réel pesé pour que la catégorie soit correcte
+  cb.pdsD=pLimit===999?ac2.poids[pi-1]+0.1:pLimit-0.1;
+  cb.pdsP=cb.pdsD;
   if(fullCat!==catDeclaree){
     toast("⚠ "+cb.nom+" → "+lbl+" (déclaré : "+catDeclaree+")","warn");
   } else {
@@ -2623,6 +2638,10 @@ function computePodium(pool){
   return res;
 }
 
+function toggleResAc(acId){
+  _resOpen[acId] = (_resOpen[acId]===false) ? true : false;
+  renderResultats();
+}
 function renderResultats(){
   var el=document.getElementById("resultats-content");
   if(!el) return;
@@ -2642,39 +2661,51 @@ function renderResultats(){
 
   AGE_CATS.forEach(function(ac){
     if(!ac.poulesFaites) return;
-    h+="<div style=\"font-family:var(--fh);font-size:1.1rem;letter-spacing:3px;color:var(--gold);margin-bottom:8px;margin-top:4px\">"+ac.lbl.toUpperCase()+"</div>";
     var catPools=Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;});
-    catPools.forEach(function(cat){
-      var pool=POOLS[cat];
-      var podium=computePodium(pool);
-      var catDone=pFights(pool).every(function(f){return f.done;});
-      h+="<div class=\"card\" style=\"margin-bottom:10px\">";
-      h+="<div style=\"font-family:var(--fh);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px\">"+cat+(catDone?" <span style=\"font-family:var(--fm);font-size:.55rem;color:var(--green)\">✔ TERMINÉ</span>":"")+"</div>";
-      h+="<div style=\"font-family:var(--fm);font-size:.56rem;color:var(--muted);margin-bottom:8px\">"+getFmtLabel(pool.format)+"</div>";
-      if(podium.length>0){
-        h+="<div style=\"display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap\">";
-        var medals=["🥇","🥈","🥉"],mc=["#e8b84b","#bbb","#cd7f32"];
-        for(var pi=0;pi<Math.min(podium.length,3);pi++){
-          var p=podium[pi];
-          h+="<div style=\"background:var(--dark4);border:1px solid var(--border2);border-radius:8px;padding:10px 8px;text-align:center;flex:1;min-width:70px;max-width:120px\">";
-          h+="<div style=\"font-size:1.5rem\">"+(p.e||"🥋")+"</div><div style=\"font-size:1.2rem\">"+medals[pi]+"</div>";
-          h+="<div style=\"font-family:var(--fh);font-size:.9rem;color:"+mc[pi]+"\">"+p.nom+"</div>";
-          h+="<div style=\"font-size:.72rem;color:var(--muted)\">"+p.pre+"</div>";
-          h+="<div style=\"font-family:var(--fm);font-size:.5rem;color:var(--muted);margin-top:2px\">"+p.v+"V·"+p.d+"D</div>";
+    if(catPools.length===0) return;
+    // En-tête catégorie d'âge cliquable (accordion)
+    var acOpen=_resOpen[ac.id]!==false; // ouvert par défaut
+    h+="<div style='border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden'>";
+    h+="<div onclick='toggleResAc(\""+ac.id+"\")' style='display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;background:rgba(232,184,75,.06)'>";
+    h+="<div style='font-family:var(--fh);font-size:1rem;letter-spacing:3px;color:var(--gold)'>"+ac.lbl.toUpperCase()+"</div>";
+    h+="<span style='color:var(--gold);font-size:1rem;transition:transform .2s;display:inline-block;transform:"+(acOpen?'rotate(90deg)':'rotate(0deg)')+"'>›</span>";
+    h+="</div>";
+    if(acOpen){
+      h+="<div style='padding:10px'>";
+      catPools.forEach(function(cat){
+        var pool=POOLS[cat];
+        var podium=computePodium(pool);
+        var catDone=pFights(pool).every(function(f){return f.done;});
+        h+="<div class='card' style='margin-bottom:10px'>";
+        h+="<div style='font-family:var(--fh);font-size:1rem;letter-spacing:2px;margin-bottom:4px'>"+cat+(catDone?" <span style='font-family:var(--fm);font-size:.55rem;color:var(--green)'>✔ TERMINÉ</span>":"")+"</div>";
+        h+="<div style='font-family:var(--fm);font-size:.56rem;color:var(--muted);margin-bottom:8px'>"+getFmtLabel(pool.format)+"</div>";
+        if(podium.length>0){
+          h+="<div style='display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap'>";
+          var medals=["🥇","🥈","🥉"],mc=["#e8b84b","#bbb","#cd7f32"];
+          for(var pi=0;pi<Math.min(podium.length,3);pi++){
+            var p=podium[pi];
+            h+="<div style='background:var(--dark4);border:1px solid var(--border2);border-radius:8px;padding:10px 8px;text-align:center;flex:1;min-width:70px;max-width:120px'>";
+            h+="<div style='font-size:1.5rem'>"+(p.e||"🥋")+"</div><div style='font-size:1.2rem'>"+medals[pi]+"</div>";
+            h+="<div style='font-family:var(--fh);font-size:.9rem;color:"+mc[pi]+"'>"+p.nom+"</div>";
+            h+="<div style='font-size:.72rem;color:var(--muted)'>"+p.pre+"</div>";
+            h+="<div style='font-family:var(--fm);font-size:.5rem;color:var(--muted);margin-top:2px'>"+p.v+"V·"+p.d+"D</div>";
+            h+="</div>";
+          }
           h+="</div>";
+        } else {
+          h+="<div style='font-family:var(--fm);font-size:.6rem;color:var(--muted);text-align:center;padding:8px 0'>En attente des resultats...</div>";
         }
-        h+="</div>";
-      } else {
-        h+="<div style=\"font-family:var(--fm);font-size:.6rem;color:var(--muted);text-align:center;padding:8px 0\">En attente des resultats...</div>";
-      }
-      h+="<table class=\"stbl\"><thead><tr><th class=\"tl\">COMBAT</th><th class=\"tl\">VAINQUEUR</th><th>ST</th></tr></thead><tbody>";
-      pFights(pool).forEach(function(f){
-        h+="<tr><td class=\"tl\" style=\"font-size:.8rem\">"+f.a.nom+" vs "+f.b.nom+"</td>";
-        h+="<td class=\"tl\">"+(f.done&&f.winner?"<span class=\"ok\">"+f[f.winner].nom+"</span>":"<span class=\"mut\">—</span>")+"</td>";
-        h+="<td>"+(f.done?"<span class=\"ok\">✔</span>":f.locked?"<span class=\"mut\">🔒</span>":"<span style=\"color:var(--red2)\">▶</span>")+"</td></tr>";
+        h+="<table class='stbl'><thead><tr><th class='tl'>COMBAT</th><th class='tl'>VAINQUEUR</th><th>ST</th></tr></thead><tbody>";
+        pFights(pool).forEach(function(f){
+          h+="<tr><td class='tl' style='font-size:.8rem'>"+f.a.nom+" vs "+f.b.nom+"</td>";
+          h+="<td class='tl'>"+(f.done&&f.winner?"<span class='ok'>"+f[f.winner].nom+"</span>":"<span class='mut'>—</span>")+"</td>";
+          h+="<td>"+(f.done?"<span class='ok'>✔</span>":f.locked?"<span class='mut'>🔒</span>":"<span style='color:var(--red2)'>▶</span>")+"</td></tr>";
+        });
+        h+="</tbody></table></div>";
       });
-      h+="</tbody></table></div>";
-    });
+      h+="</div>";
+    }
+    h+="</div>";
   });
 
   h+="<div style=\"margin-top:14px\"><div style=\"font-family:var(--fm);font-size:.56rem;color:var(--muted);letter-spacing:2px;margin-bottom:8px;text-align:center\">ACCÈS TABLES</div><div id=\"res-tbl-btns\" style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\"></div></div>";
@@ -4128,6 +4159,9 @@ function renderSuivi(){
   tables.forEach(function(t){
     Object.keys(POOL_TABLES).filter(function(k){return POOL_TABLES[k]===t;}).forEach(function(pk){
       var pool=POOLS[pk];if(!pool)return;
+      // Masquer les poules terminées dans le suivi
+      var fights=pFights(pool);
+      if(fights.length>0&&fights.every(function(f){return f.done;})) return;
       if(_suiviCat!=='all'&&pk.toLowerCase().indexOf(_suiviCat)===-1)return;
       if(q&&!pFights(pool).some(function(f){return(f.a.nom+' '+f.a.pre).toLowerCase().indexOf(q)!==-1||(f.b.nom+' '+f.b.pre).toLowerCase().indexOf(q)!==-1;}))return;
       any=true;
