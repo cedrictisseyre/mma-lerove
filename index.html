@@ -1605,7 +1605,12 @@ function assignTable(cat,t){
     if(activePool!==null&&activePool!==cat) return;
   }
   if(t===null){
+    var oldTable=POOL_TABLES[cat];
     delete POOL_TABLES[cat];
+    saveState(); // ← indispensable pour notifier Firebase et la tablette
+    if(oldTable&&_fbRef){
+      try{ _fbRef.child('appelRequired').child(oldTable).set(null); }catch(e){}
+    }
     toast("Attribution retirée — "+cat,"warn");
   } else {
     POOL_TABLES[cat]=t;
