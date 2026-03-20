@@ -1464,11 +1464,6 @@ function renderCats(){
     // sinon laisser fermé (l'admin a choisi de fermer)
   });
 
-  // Attacher boutons assign (après innerHTML)
-  AGE_CATS.forEach(function(ac){
-    attachAssignBtns(ac.id);
-  });
-
   AGE_CATS.forEach(function(ac){
     if(ac.statut==="pesee"||ac.statut==="pret"){
       renderPeseeBody(ac);
@@ -1476,6 +1471,7 @@ function renderCats(){
     } else if(ac.statut==="combats"||ac.statut==="termine"){
       renderGenSection(ac);
     }
+    // attachAssignBtns est appelé à la fin de renderGenSection — pas besoin ici
   });
 }
 
