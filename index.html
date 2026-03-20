@@ -1491,13 +1491,18 @@ function renderCats(){
   });
 
   AGE_CATS.forEach(function(ac){
-    if(statutEffectif==="pesee"||statutEffectif==="pret"){
+    // Recalculer statutEffectif ici aussi
+    var catHasP=Object.keys(POOLS).some(function(k){return getAgeCatFromCat(k)===ac.id;});
+    var allDoneP=catHasP&&Object.keys(POOLS).filter(function(k){return getAgeCatFromCat(k)===ac.id;}).every(function(k){return pFights(POOLS[k]).every(function(f){return f.done;});});
+    var sEff=ac.statut;
+    if(catHasP&&sEff!=='combats'&&sEff!=='termine') sEff='combats';
+    if(allDoneP&&sEff!=='termine') sEff='termine';
+    if(sEff==="pesee"||sEff==="pret"){
       renderPeseeBody(ac);
       renderGenSection(ac);
-    } else if(statutEffectif==="combats"||statutEffectif==="termine"){
+    } else if(sEff==="combats"||sEff==="termine"){
       renderGenSection(ac);
     }
-    // attachAssignBtns est appelé à la fin de renderGenSection — pas besoin ici
   });
 }
 
