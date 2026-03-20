@@ -1281,6 +1281,8 @@ function validerAppelTable(){
     }
   });
   _appelFait[role]=true;
+  // Effacer le signal appelRequired pour cette table (évite re-déclenchement par le listener)
+  if(_fbRef){ try{ _fbRef.child('appelRequired').child(role).set(null); }catch(e){} }
   saveState();
   goList();
   toast("✅ Appel validé — bonne compétition !","ok");
