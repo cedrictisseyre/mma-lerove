@@ -858,6 +858,10 @@ function fbInit(){
     // Sync inscriptions publiques
     _fbDb.ref('inscriptions_'+COMP_KEY).on('value',function(snap){
       var data=snap.val();
+       // Si Firebase vide mais localStorage a des données → les pousser vers Firebase
+       if(!data && _inscriptions && _inscriptions.length>0){
+         try{ _fbDb.ref('inscriptions_'+COMP_KEY).set(_inscriptions); }catch(e){}
+       }
       if(data){
         // Firebase retourne objet ou tableau selon comment c'est stocké
         _inscriptions = Array.isArray(data) ? data : Object.values(data);
