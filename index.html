@@ -4566,6 +4566,20 @@ function loadInscriptions(){
 }
 function saveInscriptions(){
   try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
+  // Mettre à jour COMBATTANTS immédiatement (sans attendre Firebase)
+  var EMOJIS2=['🥊','🥋','⚡','🔥','💪','🦊','🐯','🦁','🐺','⚔'];
+  var manuels2=COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
+  var inscrits2=_inscriptions.map(function(ins,i){
+    var ac=getAgeCat(ins.age);
+    return {id:ins.id||('ins-'+i),nom:ins.nom,pre:ins.pre,age:ins.age,
+      pdsD:ins.poids,club:ins.club,g:ins.g||'M',e:EMOJIS2[i%10],
+      present:null,pdsP:null,cat:ac?ac.lbl:'Hors catégorie',photo:ins.photo||null};
+  });
+  COMBATTANTS=manuels2.slice();
+  inscrits2.forEach(function(ins){
+    if(!COMBATTANTS.find(function(x){return x.id===ins.id;})) COMBATTANTS.push(ins);
+  });
+  updateInscCount(); updatePublicStats();
   fbSaveInscriptions();
 }
 function updateInscCount(){var el=document.getElementById('inscrit-count');if(el)el.textContent=_inscriptions.length?'('+_inscriptions.length+')':'';}
