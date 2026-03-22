@@ -884,12 +884,13 @@ function fbInit(){
         renderInscList(); updateInscCount(); updatePublicStats();
         if(role==='admin') renderInscriptions();
       } else {
-        // Firebase null → vider localement aussi
-        _inscriptions=[];
-        COMBATTANTS=COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
-        try{localStorage.removeItem(INSC_KEY);}catch(e){}
-        renderInscList(); updateInscCount(); updatePublicStats();
-        if(role==='admin') renderInscriptions();
+        // Firebase null → vider seulement si pas de données locales en cours d'écriture
+        if(_inscriptions.length===0){
+          COMBATTANTS=COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
+          try{localStorage.removeItem(INSC_KEY);}catch(e){}
+          renderInscList(); updateInscCount(); updatePublicStats();
+          if(role==='admin') renderInscriptions();
+        }
       }
     });
     // Sync état compétition — listeners ciblés par sous-nœud
