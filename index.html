@@ -2404,12 +2404,11 @@ function buildFights(fighters,format,cat,dur,startId){
   }
   if(format==="elim"){
     var phF={nom:"?",pre:"à venir",club:"",e:"❓",id:"ph"};
-    var sh=F.slice(); // ordre de l'appel table (A vs B, C vs D, etc.)
+    var sh=F.slice(); // ordre de l'appel table
     var n=sh.length;
     // Calculer la taille du bracket (puissance de 2 >= n)
     var p=1; while(p<n) p*=2;
     var byes=p-n; // BYEs uniquement au T1
-    // Combattants qui se battent au T1 et ceux qui ont un BYE
     var t1fighters=sh.slice(0,n-byes);
     var byeFighters=sh.slice(n-byes);
     // Construire les combats du T1
@@ -2421,11 +2420,7 @@ function buildFights(fighters,format,cat,dur,startId){
       fs.push(ff);
       t2slots.push({type:'winner',fightId:ff.id});
     }
-    // Les combattants BYE passent directement au T2
-    byeFighters.forEach(function(fi){
-      t2slots.push({type:'fighter',f:cloneF(fi)});
-    });
-    // Construire les tours suivants jusqu'à la finale
+    byeFighters.forEach(function(fi){ t2slots.push({type:'fighter',f:cloneF(fi)}); });
     var slots=t2slots, tN=2;
     while(slots.length>1){
       var nxt=[], isLast=(slots.length===2);
@@ -2446,7 +2441,6 @@ function buildFights(fighters,format,cat,dur,startId){
       }
       slots=nxt; tN++;
     }
-    // Combat 3e place si demi-finales existent (bracket >= 4)
     var finF=fs.find(function(x){return x.type==='elim-f';});
     if(finF&&finF.round_>=1){
       var p3=mkF(id++,cat,dur,"🥉 Combat 3e place","elim-3",cloneF(phF),cloneF(phF),true);
@@ -3309,21 +3303,32 @@ function postFightLogic(f){
     return;
   }
   if(pool.format==="elim"){
-    var allFights=pool.fights;
-    // Pour chaque combat locked, vérifier si ses sources sont prêtes
+    var allFights=pFights(pool);
+    // Ne déverrouiller un combat de round N que si TOUS les combats de round N-1 sont terminés
+    var maxDoneRound=-1;
+    allFights.forEach(function(f){
+      if(f.type==='elim-3') return;
+      if(f.done && f.round_!==undefined && f.round_>maxDoneRound) maxDoneRound=f.round_;
+    });
+    var roundComplete=function(r){
+      var roundFights=allFights.filter(function(f){return f.round_===r&&f.type!=='elim-3';});
+      return roundFights.length>0&&roundFights.every(function(f){return f.done||f.type==='elim-3';});
+    };
     allFights.forEach(function(nf){
       if(!nf.locked||nf.type==='elim-3') return;
+      var prevRound=(nf.round_||1)-1;
+      // Vérifier que TOUS les combats du round précédent sont terminés
+      if(!roundComplete(prevRound)) return;
       // Résoudre côté A
       var aOk=false, aF=null;
       if(nf.srcA_!==undefined){
         var srcA=allFights.find(function(x){return x.id==nf.srcA_;});
         if(srcA&&srcA.done){ aOk=true; aF=cloneF(srcA[srcA.winner]); }
-      } else { aOk=true; aF=nf.a; } // déjà connu à la construction
+      } else { aOk=true; aF=nf.a; }
       if(!aOk) return;
       // Résoudre côté B
       var bOk=false, bF=null;
       if(nf.exemptB_){
-        // Exempt direct : combattant déjà connu
         bOk=true; bF=nf.exemptB_;
       } else if(nf.srcB_!==undefined){
         var srcB=allFights.find(function(x){return x.id==nf.srcB_;});
@@ -4566,20 +4571,6 @@ function loadInscriptions(){
 }
 function saveInscriptions(){
   try{localStorage.setItem(INSC_KEY,JSON.stringify(_inscriptions));}catch(e){}
-  // Mettre à jour COMBATTANTS immédiatement (sans attendre Firebase)
-  var EMOJIS2=['🥊','🥋','⚡','🔥','💪','🦊','🐯','🦁','🐺','⚔'];
-  var manuels2=COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
-  var inscrits2=_inscriptions.map(function(ins,i){
-    var ac=getAgeCat(ins.age);
-    return {id:ins.id||('ins-'+i),nom:ins.nom,pre:ins.pre,age:ins.age,
-      pdsD:ins.poids,club:ins.club,g:ins.g||'M',e:EMOJIS2[i%10],
-      present:null,pdsP:null,cat:ac?ac.lbl:'Hors catégorie',photo:ins.photo||null};
-  });
-  COMBATTANTS=manuels2.slice();
-  inscrits2.forEach(function(ins){
-    if(!COMBATTANTS.find(function(x){return x.id===ins.id;})) COMBATTANTS.push(ins);
-  });
-  updateInscCount(); updatePublicStats();
   fbSaveInscriptions();
 }
 function updateInscCount(){var el=document.getElementById('inscrit-count');if(el)el.textContent=_inscriptions.length?'('+_inscriptions.length+')':'';}
