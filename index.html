@@ -3634,9 +3634,13 @@ function viderInscriptions(){
   try{ localStorage.removeItem(INSC_KEY); }catch(e){}
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   // Vider Firebase inscriptions
-  if(_fbDb){ try{ _fbDb.ref('inscriptions_'+COMP_KEY).set(null); }catch(e){} }
-  // Vider Firebase state (combattants)
-  if(_fbRef){ try{ _fbRef.child('combattants').set(null); }catch(e){} }
+  if(_fbDb){ try{ _fbDb.ref('inscriptions_'+COMP_KEY).set([]); }catch(e){} }
+  // Vider Firebase state combattants ET le state complet
+  if(_fbRef){
+    try{ _fbRef.child('combattants').set([]); }catch(e){}
+    try{ _fbRef.child('pools').set(null); }catch(e){}
+    try{ _fbRef.child('fights').set(null); }catch(e){}
+  }
   toast("🗑 Inscriptions vidées","warn");
   renderInscriptions();
 }
