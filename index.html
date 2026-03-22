@@ -880,7 +880,12 @@ function fbInit(){
         renderInscList(); updateInscCount(); updatePublicStats();
         if(role==='admin') renderInscriptions();
       } else {
-        updatePublicStats();
+        // Firebase null → vider localement aussi
+        _inscriptions=[];
+        COMBATTANTS=COMBATTANTS.filter(function(cb){return cb.id&&cb.id[0]==='c';});
+        try{localStorage.removeItem(INSC_KEY);}catch(e){}
+        renderInscList(); updateInscCount(); updatePublicStats();
+        if(role==='admin') renderInscriptions();
       }
     });
     // Sync état compétition — listeners ciblés par sous-nœud
@@ -3628,22 +3633,25 @@ function resetCompetition(){
 
 function viderInscriptions(){
   if(!confirm("Vider TOUTES les inscriptions ? Cette action est irréversible.")) return;
-  // Bloquer applyRemoteState pendant 5 secondes pour éviter la restauration
-  _fbIgnoreNext=true;
-  setTimeout(function(){ _fbIgnoreNext=false; }, 5000);
-  _inscriptions=[];
-  COMBATTANTS=[];
-  POOLS={}; FIGHTS=[]; POOL_TABLES={};
-  AGE_CATS.forEach(function(ac){ ac.statut='attente'; ac.poulesFaites=false; });
-  // Vider localStorage
+  // Vider Firebase inscriptions + state
+  var done1=false, done2=false;
+  function tryReload(){ if(done1&&done2) window.location.reload(); }
+  if(_fbDb){
+    try{
+      _fbDb.ref('inscriptions_'+COMP_KEY).remove(function(){ done1=true; tryReload(); });
+    }catch(e){ done1=true; tryReload(); }
+  } else { done1=true; }
+  if(_fbRef){
+    try{
+      _fbRef.remove(function(){ done2=true; tryReload(); });
+    }catch(e){ done2=true; tryReload(); }
+  } else { done2=true; }
+  // Vider localStorage immédiatement
   try{ localStorage.removeItem(INSC_KEY); }catch(e){}
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
-  // Vider Firebase entièrement
-  if(_fbDb){ try{ _fbDb.ref('inscriptions_'+COMP_KEY).set([]); }catch(e){} }
-  if(_fbRef){ try{ _fbRef.set({combattants:[],pools:{},fights:[],poolTables:{},ageCats:AGE_CATS.map(function(ac){return {id:ac.id,statut:ac.statut,poulesFaites:false};}),savedAt:Date.now()}); }catch(e){} }
-  toast("🗑 Inscriptions vidées — rechargement...","warn");
-  // Recharger la page après 1.5s pour repartir sur un état propre
-  setTimeout(function(){ window.location.reload(); }, 1500);
+  toast("🗑 Vidage en cours...","warn");
+  // Fallback reload si Firebase tarde
+  setTimeout(function(){ window.location.reload(); }, 3000);
 }
 
 function updateSaveIndicator(){
