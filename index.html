@@ -3641,9 +3641,9 @@ function viderInscriptions(){
   // Vider Firebase entièrement
   if(_fbDb){ try{ _fbDb.ref('inscriptions_'+COMP_KEY).set([]); }catch(e){} }
   if(_fbRef){ try{ _fbRef.set({combattants:[],pools:{},fights:[],poolTables:{},ageCats:AGE_CATS.map(function(ac){return {id:ac.id,statut:ac.statut,poulesFaites:false};}),savedAt:Date.now()}); }catch(e){} }
-  toast("🗑 Inscriptions vidées","warn");
-  renderInscriptions();
-  renderCats();
+  toast("🗑 Inscriptions vidées — rechargement...","warn");
+  // Recharger la page après 1.5s pour repartir sur un état propre
+  setTimeout(function(){ window.location.reload(); }, 1500);
 }
 
 function updateSaveIndicator(){
