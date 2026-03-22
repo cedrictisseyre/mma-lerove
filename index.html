@@ -386,8 +386,8 @@ body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:1
   </div></div>
       <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);text-align:center">
         <button onclick="resetCompetition()" style="background:transparent;border:1px solid #3a3a3a;border-radius:6px;color:#555;cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:2px;padding:6px 14px">🗑 RÉINITIALISER LA COMPÉTITION</button>
-<button onclick="resetInscriptions()" style="background:transparent;border:1px solid #3a3a3a;border-radius:6px;color:#555;cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:2px;padding:6px 14px;margin-left:8px">🗑 VIDER LES INSCRITS</button>
-        <button onclick="viderInscriptions()" style="background:transparent;border:1px solid #ef4444;border-radius:6px;color:#ef4444;cursor:pointer;font-family:var(--fm);font-size:.52rem;letter-spacing:2px;padding:6px 14px;margin-top:6px">🗑 VIDER LES INSCRIPTIONS</button>
+
+
         <div id="save-indicator" style="font-family:var(--fm);font-size:.5rem;color:var(--muted);margin-top:4px;letter-spacing:1px"></div>
         <div id="fb-indicator" style="font-family:var(--fm);font-size:.5rem;margin-top:2px;letter-spacing:1px"></div>
       </div>
@@ -3719,7 +3719,8 @@ function renderInscriptions(){
   h += "<input class='ins-search' id='ins-search-input' type='text' placeholder='🔍  Rechercher nom, prénom, club…' value='"+_insSearch.replace(/'/g,"&#39;")+"' oninput='insOnSearch(this.value)'>";
   h += "<button class='btn su' onclick='openFighterModal(null)' style='white-space:nowrap;font-family:var(--fm);font-size:.6rem;letter-spacing:1px'>+ AJOUTER</button>";
   h += "<button class='btn gh' onclick='openImportModal()' style='white-space:nowrap;font-family:var(--fm);font-size:.6rem;letter-spacing:1px'>📥 IMPORT CSV</button>";
-  h += "<button class='btn gh' onclick='exportCSV()' style='white-space:nowrap;font-family:var(--fm);font-size:.6rem;letter-spacing:1px'>📤 EXPORT</button>";
+  h += "<button class='btn gh' onclick='exportCSV()' style='white-space:nowrap;font-family:var(--fm);font-size:.6rem;letter-spacing:1px'>📤 EXPORT</button>"+
+  "<button class='btn gh' onclick='viderInscriptions()' style='white-space:nowrap;font-family:var(--fm);font-size:.6rem;letter-spacing:1px;border-color:#ef4444;color:#ef4444'>🗑 VIDER</button>";
   h += "</div>";
 
   // Filtres rapides
