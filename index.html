@@ -2408,7 +2408,7 @@ function buildFights(fighters,format,cat,dur,startId){
   }
   if(format==="elim"){
     var phF={nom:"?",pre:"à venir",club:"",e:"❓",id:"ph"};
-    var sh=F.slice().sort(function(){return Math.random()-.5;}); // tirage aléatoire
+    var sh=F.slice(); // ordre de l'appel table (A vs B, C vs D, etc.)
     var n=sh.length;
     // Calculer la taille du bracket (puissance de 2 >= n)
     var p=1; while(p<n) p*=2;
