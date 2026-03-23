@@ -3954,7 +3954,10 @@ function saveFighter(){
 
   _insEditId=null;
   closeModal();
-  saveInscriptions(); // Une seule source de vérité : inscriptions_interclubs_18avril_v2
+  // Sauvegarder via Firebase directement
+  if(_fbDb){
+    try{ _fbDb.ref('inscriptions_'+COMP_KEY).set(_inscriptions); }catch(e){}
+  }
   renderInscriptions();
 }
 
@@ -3966,7 +3969,10 @@ function deleteFighter(id){
   _inscriptions = _inscriptions.filter(function(x){return x.id!==id;});
   COMBATTANTS = COMBATTANTS.filter(function(x){return x.id!==id;});
   toast("🗑 "+cb.nom+" supprimé","err");
-  saveInscriptions(); // Synchronise sur tous les appareils
+  // Réécrire la liste sans l'élément supprimé
+  if(_fbDb){
+    try{ _fbDb.ref('inscriptions_'+COMP_KEY).set(_inscriptions.length>0?_inscriptions:null); }catch(e){}
+  }
   renderInscriptions();
 }
 
@@ -4125,7 +4131,9 @@ function confirmImport(){
   });
   closeModal();
   toast("✔ "+added+" combattant(s) importé(s)","ok");
-  saveInscriptions(); // Sync Firebase inscriptions → visible côté parents
+  if(_fbDb){
+    try{ _fbDb.ref('inscriptions_'+COMP_KEY).set(_inscriptions); }catch(e){}
+  }
   renderInscriptions();
 }
 
@@ -4226,14 +4234,8 @@ function fbSave(state){
   try{_lastSaveTs=state.savedAt||Date.now();_fbIgnoreNext=true;_fbRef.set(state);}catch(e){console.warn('fbSave:',e);}
 }
 function fbSaveInscriptions(){
-  if(!_fbDb){
-    // Firebase pas encore prêt — réessayer dans 1 seconde
-    setTimeout(fbSaveInscriptions, 1000);
-    return;
-  }
-  try{
-    _fbDb.ref('inscriptions_'+COMP_KEY).set(_inscriptions);
-  }catch(e){ console.warn('fbSaveInscriptions:',e); }
+  // Désactivé — chaque ajout/suppression passe directement par Firebase
+  // pour éviter tout écrasement de la liste complète
 }
 function updateFbIndicator(){
   var el=document.getElementById('fb-indicator'); if(!el) return;
@@ -4718,8 +4720,18 @@ function submitInscription(){
   var ac=getAgeCat(age);
   var photoEl = document.getElementById('insc-photo-img');
   var photo = (photoEl && photoEl.src && photoEl.src.startsWith('data:')) ? photoEl.src : null;
-  _inscriptions.push({id:'ins-'+Date.now(),nom:nom,pre:pre,age:age,poids:pds,g:g,club:club,tel:tel,email:email,cat:ac?ac.lbl:'Hors catégorie',date:new Date().toLocaleDateString('fr-FR'),statut:'en attente',photo:photo});
-  try{ saveInscriptions(); }catch(e){ console.warn('save:',e); }
+  var newInsc={id:'ins-'+Date.now(),nom:nom,pre:pre,age:age,poids:pds,g:g,club:club,tel:tel,email:email,cat:ac?ac.lbl:'Hors catégorie',date:new Date().toLocaleDateString('fr-FR'),statut:'en attente',photo:photo};
+  // Lire Firebase en temps réel puis ajouter — évite tout écrasement
+  if(_fbDb){
+    _fbDb.ref('inscriptions_'+COMP_KEY).once('value',function(snap){
+      var data=snap.val();
+      var liste=data?(Array.isArray(data)?data:Object.values(data)):[];
+      // Vérifier doublon une dernière fois
+      if(liste.find(function(x){return x.nom===newInsc.nom&&x.pre===newInsc.pre&&x.club===newInsc.club;})) return;
+      liste.push(newInsc);
+      _fbDb.ref('inscriptions_'+COMP_KEY).set(liste);
+    });
+  }
   // Afficher la page de confirmation
   var wrap = document.getElementById('insc-form-wrap');
   if(wrap){
