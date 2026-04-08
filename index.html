@@ -994,6 +994,16 @@ function applyRemoteState(data){
           photo:   sc.photo   || null
         };
       });
+      // Réhydrater les photos depuis _inscriptions (source Firebase toujours à jour)
+      // car saveState ne sauvegarde pas photo dans combattants pour alléger Firebase
+      if(_inscriptions && _inscriptions.length > 0){
+        COMBATTANTS.forEach(function(cb){
+          if(!cb.photo){
+            var insc=_inscriptions.find(function(x){return x.id===cb.id;});
+            if(insc && insc.photo) cb.photo=insc.photo;
+          }
+        });
+      }
       changed=true;
     }
     if(data.ageCats){
