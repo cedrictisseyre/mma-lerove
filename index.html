@@ -4792,12 +4792,31 @@ function previewPhoto(input){
 
 function showInscription(){
   showPage('pg-inscription');
+  // Si inscriptions fermées : remplacer tout le contenu par une page de fermeture
+  var fw=document.getElementById('insc-form-wrap');
+  var banner=document.getElementById('insc-statut-banner');
+  if(!_inscOpen){
+    if(banner) banner.innerHTML='';
+    if(fw) fw.innerHTML=""+
+      "<div style='text-align:center;padding:40px 20px'>" +
+      "<div style='font-size:4rem;margin-bottom:20px'>🔒</div>" +
+      "<div style='font-family:var(--fh);font-size:1.4rem;letter-spacing:3px;color:var(--red2);margin-bottom:12px'>INSCRIPTIONS FERMÉES</div>" +
+      "<div style='font-family:var(--fm);font-size:.7rem;color:var(--muted);line-height:2;margin-bottom:24px'>" +
+        "Les inscriptions pour la compétition<br>" +
+        "<strong style='color:#fff'>Mix Martial Academy — 18 Avril · Le Rove</strong><br>" +
+        "sont actuellement fermées.<br>" +
+        "Contactez l'organisateur pour plus d'informations." +
+      "</div>" +
+      "<button onclick='showPage(\"pg-public\")' style='background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:12px 24px;color:var(--muted);font-family:var(--fh);font-size:.7rem;letter-spacing:2px;cursor:pointer'>← RETOUR À L\'ACCUEIL</button>" +
+      "</div>";
+    return;
+  }
+  // Inscriptions ouvertes : afficher le formulaire normalement
+  if(fw) fw.style.opacity='1';
   var sel=document.getElementById('insc-club');
   if(sel){sel.innerHTML='<option value="">— Sélectionner le club —</option>';CLUBS.forEach(function(cl){var o=document.createElement('option');o.value=cl;o.textContent=cl;sel.appendChild(o);});}
-  var banner=document.getElementById('insc-statut-banner');
   if(banner){
-    if(!_inscOpen){banner.innerHTML="<div style='background:rgba(200,0,10,.1);border:1px solid var(--red2);border-radius:8px;padding:12px;font-family:var(--fm);font-size:.62rem;color:var(--red2);text-align:center'>🔒 Les inscriptions sont actuellement fermées.</div>";var fw=document.getElementById('insc-form-wrap');if(fw){fw.style.opacity='.4';var btn=fw.querySelector('button');if(btn)btn.disabled=true;}}
-    else{banner.innerHTML="<div style='background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:8px;font-family:var(--fm);font-size:.58rem;color:var(--green);text-align:center'>✅ Inscriptions ouvertes</div>";}
+    banner.innerHTML="<div style='background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:8px;font-family:var(--fm);font-size:.58rem;color:var(--green);text-align:center'>✅ Inscriptions ouvertes</div>";
   }
   // Lire depuis Firebase directement (pas localStorage local)
   if(_fbDb){
