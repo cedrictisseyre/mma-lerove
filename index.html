@@ -1728,6 +1728,12 @@ function renderModalSolitaire(acId, idx){
 
   var sol=solitaires[idx];
   var f=sol.fighter;
+  // Si une décision déjà stockée envoie quelqu'un DANS cette catégorie → elle ne sera plus seule → skip
+  var alreadyResolved=Object.keys(state.decisions).some(function(k){
+    var d=state.decisions[k];
+    return d.action==='changer'&&d.targetCat===sol.cat;
+  });
+  if(alreadyResolved){renderModalSolitaire(acId,idx+1);return;}
   var ac=AGE_CATS.find(function(x){return x.id===acId;});
   var root=document.getElementById("modal-root");
   if(!root) return;
