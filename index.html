@@ -3889,13 +3889,12 @@ function renderInscriptions(){
     h += "<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:30px'>Aucun combattant trouvé</div>";
   } else {
     h += "<div style='overflow-x:auto'><table class='ins-table'>";
-    h += "<thead><tr><th></th><th>NOM</th><th>ÂGE</th><th>CATÉGORIE</th><th>POIDS DÉC.</th><th>CLUB</th><th>GENRE</th><th></th></tr></thead>";
+    h += "<thead><tr><th>NOM</th><th>ÂGE</th><th>CATÉGORIE</th><th>POIDS DÉC.</th><th>CLUB</th><th>GENRE</th><th></th></tr></thead>";
     h += "<tbody>";
     list.forEach(function(cb){
       var ac = getAgeCat(cb.age);
       var catPds = ac ? getCatPoids(ac, cb.pdsD) : "—";
       h += "<tr>";
-      h += "<td style='font-size:1.1rem'>"+cb.e+"</td>";
       var cbThumb = (cb.photo && cb.photo.indexOf('data:')===0) ? "<img src='" + cb.photo + "' style='width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--gold);margin-right:6px;vertical-align:middle'>" : "<span style='display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--dark3);text-align:center;line-height:28px;font-size:.7rem;margin-right:6px;vertical-align:middle'>👤</span>";
       h += "<td>" + cbThumb + "<b style='font-family:var(--fh);letter-spacing:1px'>" + cb.nom + "</b> " + cb.pre + "</td>";
       h += "<td>"+cb.age+" ans</td>";
@@ -3940,11 +3939,10 @@ function insOnSearch(val){
     tableWrap.innerHTML="<div style='font-family:var(--fm);font-size:.65rem;color:var(--muted);text-align:center;padding:30px'>Aucun combattant trouvé</div>";
   } else {
     var h="<div style='overflow-x:auto'><table class='ins-table'>";
-    h+="<thead><tr><th></th><th>NOM</th><th>ÂGE</th><th>CATÉGORIE</th><th>POIDS DÉC.</th><th>CLUB</th><th>GENRE</th><th></th></tr></thead><tbody>";
+    h+="<thead><tr><th>NOM</th><th>ÂGE</th><th>CATÉGORIE</th><th>POIDS DÉC.</th><th>CLUB</th><th>GENRE</th><th></th></tr></thead><tbody>";
     list.forEach(function(cb){
       var ac=getAgeCat(cb.age);
       h+="<tr>";
-      h+="<td style='font-size:1.1rem'>"+cb.e+"</td>";
       var cbThumb=(cb.photo&&cb.photo.indexOf('data:')===0)?"<img src='"+cb.photo+"' style='width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--gold);margin-right:6px;vertical-align:middle'>":"<span style='display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--dark3);text-align:center;line-height:28px;font-size:.7rem;margin-right:6px;vertical-align:middle'>👤</span>";
       h+="<td>"+cbThumb+"<b style='font-family:var(--fh);letter-spacing:1px'>"+cb.nom+"</b> "+cb.pre+"</td>";
       h+="<td>"+cb.age+" ans</td>";
