@@ -1290,9 +1290,12 @@ function validerAppelTable(){
       var sorted=presents.slice();
       for(var pi=0;pi<sorted.length-1;pi+=2){
         if(sorted[pi].club && sorted[pi+1].club && sorted[pi].club===sorted[pi+1].club){
-          var swapIdx=pi+2;
-          if(swapIdx<sorted.length && sorted[swapIdx].club!==sorted[pi].club){
-            var tmp=sorted[pi+1]; sorted[pi+1]=sorted[swapIdx]; sorted[swapIdx]=tmp;
+          // Chercher le 1er combattant d'un club différent après pi+1
+          for(var si=pi+2;si<sorted.length;si++){
+            if(!sorted[si].club||sorted[si].club!==sorted[pi].club){
+              var tmp=sorted[pi+1]; sorted[pi+1]=sorted[si]; sorted[si]=tmp;
+              break;
+            }
           }
         }
       }
