@@ -1408,11 +1408,6 @@ function fPhoto(cb,size){
     var full=COMBATTANTS.find(function(x){return x.id===cb.id;});
     if(full) photo=full.photo;
   }
-  // Fallback : chercher dans _inscriptions (toujours à jour depuis Firebase)
-  if(!photo&&cb.id){
-    var insc=_inscriptions.find(function(x){return x.id===cb.id;});
-    if(insc) photo=insc.photo||null;
-  }
   if(photo&&photo.indexOf('data:')===0){
     return "<img src='"+photo+"' style='width:"+size+"px;height:"+size+"px;border-radius:50%;object-fit:cover;border:2px solid rgba(232,184,75,.6);display:block;margin:0 auto'>";
   }
